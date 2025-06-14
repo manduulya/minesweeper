@@ -31,35 +31,32 @@ A classic Minesweeper game built with Flutter featuring multiple levels of diffi
 ```bash
 git clone https://github.com/manduulya/minesweeper.git
 cd minesweeper-flutter
+```
 
 2. Install dependencies
-    flutter pub get
+```bash    
+flutter pub get 
+```
 
 3. Run the app on your connected device or emulator:
+```bash
     flutter run
+```
 
 ### How to Play
 
 - Tap on tiles to reveal them.
-
 - Avoid mines — revealing a mine ends the game immediately.
-
 - Clear all safe tiles to complete the level and move to the next.
-
 - Your score increases with the number of mines cleared and how quickly you complete each level.
-
 - Maintain winning streaks to earn bonus points that multiply your score.
-
 - Bonus points appear as pop-ups and disappear when you tap anywhere.
 
 
 ### Scoring System
 - Your score is calculated based on:
-
 - Cleared Mines: Points awarded for each mine safely identified or cleared.
-
 - Completion Time: Faster completion yields higher points.
-
 - Winning Streak Bonus: Each consecutive win increases your score multiplier by 10%, up to 100% at 10 or more wins.
 
 ### Winning Streak Bonus
@@ -89,13 +86,17 @@ How to contribute:
 
 2. Create a new branch for your feature or bugfix
 
+```bash   
     git checkout -b feature-name
+```
 
 3. Commit your changes
 
 4. Push to your branch
 
+```bash    
     git push origin feature-name
+```
 
 5. Open a pull request describing your changes
 
