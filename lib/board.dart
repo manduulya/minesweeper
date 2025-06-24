@@ -158,7 +158,7 @@ class _GameBoardState extends State<GameBoard> {
                       final success = game.useHint();
                       if (success) {
                         game.hintCount--;
-                        game.checkWin(); // optional, in case hint leads to win
+                        game.checkWin();
                       }
                     });
                   }
@@ -166,7 +166,27 @@ class _GameBoardState extends State<GameBoard> {
             child: Text('💡 Use Hint (${game.hintCount})'),
           ),
         ),
-
+        // 🔄 Restart button
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                game = Game(
+                  game.rows,
+                  game.cols,
+                  game.bombs,
+                  level: game.level,
+                  score: game.score,
+                  winningStreak: game.winningStreak,
+                  hintCount: game.hintCount,
+                );
+                game.startTimer();
+              });
+            },
+            child: const Text('🔄 Restart Game'),
+          ),
+        ),
         Expanded(
           child: Center(
             child: SizedBox(

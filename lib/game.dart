@@ -151,12 +151,13 @@ class Game {
   }
 
   bool useHint() {
-    if (hintCount <= 0 || isGameOver) return false;
+    if (isGameOver) return false;
 
     for (var row in board) {
       for (var tile in row) {
         if (!tile.isRevealed && !tile.isBomb && !tile.isFlagged) {
           tile.isRevealed = true;
+          tile.isHintRevealed = true;
           return true;
         }
       }

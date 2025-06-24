@@ -15,27 +15,38 @@ class TileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // final shouldAnimate = tile.isHintRevealed;
+
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: Container(
-        margin: const EdgeInsets.all(1),
-        color: tile.isRevealed
-            ? tile.isBomb
-                  ? Colors.red
-                  : Colors.grey
-            : Colors.blue,
-        child: Center(
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 400),
+        opacity: tile.isRevealed ? 1.0 : 0.6,
+        child: Container(
+          decoration: BoxDecoration(
+            color: tile.isRevealed
+                ? (tile.isBomb ? Colors.red.shade300 : Colors.grey.shade300)
+                : Colors.blueAccent,
+            border: Border.all(color: Colors.black),
+          ),
+          alignment: Alignment.center,
           child: tile.isRevealed
               ? tile.isBomb
                     ? const Icon(Icons.warning, color: Colors.black)
-                    : Text(
-                        tile.adjacentBombs > 0 ? '${tile.adjacentBombs}' : '',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      )
-              : tile.isFlagged
-              ? const Icon(Icons.flag, color: Colors.yellow)
-              : const SizedBox.shrink(),
+                    : (tile.adjacentBombs > 0
+                          ? Text(
+                              '${tile.adjacentBombs}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                color: Colors.black,
+                              ),
+                            )
+                          : null)
+              : (tile.isFlagged
+                    ? const Icon(Icons.flag, size: 20, color: Colors.red)
+                    : null),
         ),
       ),
     );
