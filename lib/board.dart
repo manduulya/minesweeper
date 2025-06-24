@@ -38,24 +38,58 @@ class _GameBoardState extends State<GameBoard> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  setState(() {
-                    final nextLevel = game.isGameWon
-                        ? game.level + 1
-                        : game.level;
-                    final nextBombs = game.isGameWon
-                        ? game.bombs + 1
-                        : game.bombs;
-                    final nextScore = game.score; // Always preserve score
 
+                  final bool won = game.isGameWon;
+                  final int newStreak = won ? game.winningStreak + 1 : 0;
+
+                  int base = 100;
+                  int bonus = 0;
+                  int updatedScore = game.score;
+
+                  if (won) {
+                    if (newStreak >= 2) {
+                      bonus = (base * (newStreak * 0.1))
+                          .round(); // Only apply bonus after first win
+                    }
+
+                    updatedScore += base + bonus;
+                  }
+
+                  final int updatedStreak = won ? newStreak : 0;
+                  final int updatedHints = won
+                      ? game.hintCount + 1
+                      : game.hintCount;
+
+                  setState(() {
                     game = Game(
                       9,
                       9,
-                      nextBombs,
-                      level: nextLevel,
-                      score: nextScore,
+                      won ? game.bombs + 1 : game.bombs,
+                      level: won ? game.level + 1 : game.level,
+                      score: updatedScore,
+                      winningStreak: updatedStreak,
+                      hintCount: updatedHints,
                     );
-                    game.startTimer();
                   });
+
+                  // Show bonus dialog if bonus was earned
+                  if (won && bonus > 0) {
+                    Future.delayed(Duration.zero, () {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (context) => GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: AlertDialog(
+                            title: const Text("🔥 Winning Streak Bonus!"),
+                            content: Text(
+                              "You earned a $bonus point bonus for a $newStreak-win streak!",
+                            ),
+                          ),
+                        ),
+                      );
+                    });
+                  }
                 },
                 child: Text(game.isGameWon ? 'Next Level' : 'Retry'),
               ),
@@ -104,7 +138,53 @@ class _GameBoardState extends State<GameBoard> {
                 '💣 Mines left: ${game.remainingFlags}',
                 style: TextStyle(fontSize: 18),
               ),
+              Text(
+                '🔥 Streak: ${game.winningStreak}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
+          ),
+        ),
+        // 💡 Hint button
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: ElevatedButton(
+            onPressed: (game.hintCount > 0 && !game.isGameOver)
+                ? () {
+                    setState(() {
+                      final success = game.useHint();
+                      if (success) {
+                        game.hintCount--;
+                        game.checkWin();
+                      }
+                    });
+                  }
+                : null,
+            child: Text('💡 Use Hint (${game.hintCount})'),
+          ),
+        ),
+        // 🔄 Restart button
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          child: ElevatedButton(
+            onPressed: () {
+              setState(() {
+                game = Game(
+                  game.rows,
+                  game.cols,
+                  game.bombs,
+                  level: game.level,
+                  score: game.score,
+                  winningStreak: game.winningStreak,
+                  hintCount: game.hintCount,
+                );
+                game.startTimer();
+              });
+            },
+            child: const Text('🔄 Restart Game'),
           ),
         ),
         Expanded(

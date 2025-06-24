@@ -14,6 +14,8 @@ class Game {
   DateTime? startTime;
   DateTime? endTime;
   int winningStreak;
+  int hintCount;
+
   void startTimer() {
     startTime = DateTime.now();
   }
@@ -45,6 +47,7 @@ class Game {
     this.level = 1,
     this.score = 0,
     this.winningStreak = 0,
+    this.hintCount = 3,
   }) {
     _initBoard();
     _placeBombs();
@@ -141,13 +144,24 @@ class Game {
       isGameOver = true;
       isGameWon = true;
 
-      // Scoring logic
-      score += 100; // base points for success
-      score += calculateBonus(); // bonus for speed
-
       return true;
     }
 
+    return false;
+  }
+
+  bool useHint() {
+    if (isGameOver) return false;
+
+    for (var row in board) {
+      for (var tile in row) {
+        if (!tile.isRevealed && !tile.isBomb && !tile.isFlagged) {
+          tile.isRevealed = true;
+          tile.isHintRevealed = true;
+          return true;
+        }
+      }
+    }
     return false;
   }
 }
