@@ -40,29 +40,35 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
 
 flutter_launcher_icons:
-  image_path: "assets/app_icon.png"
+  image_path: "assets/icon.png"
   android: true
   ios: true
   web:
     generate: true
-    image_path: "assets/app_icon.png"
+    image_path: "assets/icon.png"
   windows:
     generate: true
-    image_path: "assets/app_icon.png"
+    image_path: "assets/icon.png"
   macos:
     generate: true
-    image_path: "assets/app_icon.png"
+    image_path: "assets/icon.png"
   linux:
     generate: true
-    image_path: "assets/app_icon.png"
+    image_path: "assets/icon.png"
 flutter:
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/icon.png
+    - assets/WelcomeTitle.png
+    - assets/landingPageLogo.png
+    - assets/playButton.png   
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -94,3 +100,11 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+flutter_native_splash:
+  color: "#000000"
+  image: assets/icon.png
+  android: true
+  ios: true
+  web: false
+  fullscreen: true
+  android_gravity: center
