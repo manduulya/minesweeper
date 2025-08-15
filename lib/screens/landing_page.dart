@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'board.dart'; // or wherever GameBoard lives
+import '../board.dart'; // or wherever GameBoard lives
 
 class LandingPage extends StatelessWidget {
   const LandingPage({super.key});

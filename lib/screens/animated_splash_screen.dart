@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'board.dart';
 import 'landing_page.dart';
 
 class AnimatedSplashScreen extends StatefulWidget {

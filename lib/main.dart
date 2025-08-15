@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'animated_splash_screen.dart';
-import 'landing_page.dart';
+import 'screens/animated_splash_screen.dart';
 
 void main() => runApp(const MinesweeperApp());
 

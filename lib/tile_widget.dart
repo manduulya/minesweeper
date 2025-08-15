@@ -20,35 +20,39 @@ class TileWidget extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: onLongPress,
-      child: AnimatedOpacity(
-        duration: const Duration(milliseconds: 400),
-        opacity: tile.isRevealed ? 1.0 : 0.6,
-        child: Container(
-          decoration: BoxDecoration(
-            color: tile.isRevealed
-                ? (tile.isBomb ? Colors.red.shade300 : Colors.grey.shade300)
-                : Colors.blueAccent,
-            border: Border.all(color: Colors.black),
-          ),
-          alignment: Alignment.center,
-          child: tile.isRevealed
-              ? tile.isBomb
-                    ? const Icon(Icons.warning, color: Colors.black)
-                    : (tile.adjacentBombs > 0
-                          ? Text(
-                              '${tile.adjacentBombs}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.black,
-                              ),
-                            )
-                          : null)
-              : (tile.isFlagged
-                    ? const Icon(Icons.flag, size: 20, color: Colors.red)
-                    : null),
+      // child: AnimatedOpacity(
+      // duration: const Duration(milliseconds: 400),
+      // opacity: tile.isRevealed ? 1.0 : 0.6,
+      child: Container(
+        decoration: BoxDecoration(
+          color: tile.isRevealed
+              ? (tile.isBomb ? Colors.red.shade300 : Colors.grey.shade300)
+              : const Color(0xFF1B2844),
+          border: Border.all(color: Colors.black),
         ),
+        alignment: Alignment.center,
+        child: tile.isRevealed
+            ? tile.isBomb
+                  ? Image.asset(
+                      'assets/bombRevealed.png',
+                      width: 30,
+                      height: 30,
+                    )
+                  : (tile.adjacentBombs > 0
+                        ? Text(
+                            '${tile.adjacentBombs}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: Colors.black,
+                            ),
+                          )
+                        : null)
+            : (tile.isFlagged
+                  ? const Icon(Icons.flag, size: 20, color: Colors.red)
+                  : null),
       ),
+      // ),
     );
   }
 }
