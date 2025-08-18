@@ -131,6 +131,8 @@ class AuthService {
 }
 
 class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
   @override
   _LoginScreenState createState() => _LoginScreenState();
 }
@@ -172,12 +174,12 @@ class _LoginScreenState extends State<LoginScreen> {
             // Traditional Login Button
             ElevatedButton(
               onPressed: _isLoading ? null : _traditionalLogin,
-              child: _isLoading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Login'),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 48),
               ),
+              child: _isLoading
+                  ? CircularProgressIndicator(color: Colors.white)
+                  : Text('Login'),
             ),
             SizedBox(height: 16),
 
@@ -338,6 +340,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
 // Registration Screen Example
 class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
   @override
   _RegisterScreenState createState() => _RegisterScreenState();
 }
@@ -430,12 +434,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
             ElevatedButton(
               onPressed: _isLoading ? null : _register,
-              child: _isLoading
-                  ? CircularProgressIndicator(color: Colors.white)
-                  : Text('Create Account'),
               style: ElevatedButton.styleFrom(
                 minimumSize: Size(double.infinity, 48),
               ),
+              child: _isLoading
+                  ? CircularProgressIndicator(color: Colors.white)
+                  : Text('Create Account'),
             ),
             SizedBox(height: 16),
 

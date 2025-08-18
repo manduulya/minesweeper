@@ -11,6 +11,7 @@ class GameBoard extends StatefulWidget {
 
 class _GameBoardState extends State<GameBoard> {
   Game? game; // nullable for loading state
+  bool _showStartDialog = false; // Add this flag
 
   @override
   void initState() {
@@ -23,11 +24,102 @@ class _GameBoardState extends State<GameBoard> {
     await Future.delayed(const Duration(seconds: 1));
 
     final newGame = Game(9, 9, 10);
-    newGame.startTimer();
+    // Don't start timer immediately - wait for user to click Start
 
     setState(() {
       game = newGame;
+      _showStartDialog = true; // Show the start dialog
     });
+
+    // Show start dialog after the widget is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_showStartDialog) {
+        _showGameStartDialog();
+      }
+    });
+  }
+
+  // Add this method to show the start game dialog
+  void _showGameStartDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false, // User must click Start button
+      builder: (context) => AlertDialog(
+        title: Text(
+          'Level '
+          '${game!.level}',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
+          textAlign: TextAlign.center,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // _buildStatRow('Level', '${game!.level}'),
+            // const SizedBox(height: 12),
+            _buildStatRow('Score', '${game!.score}'),
+            const SizedBox(height: 12),
+            _buildStatRow('Streak', '${game!.winningStreak}'),
+            const SizedBox(height: 12),
+            _buildStatRow('Hints', '${game!.hintCount}'),
+            const SizedBox(height: 20),
+          ],
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                setState(() {
+                  _showStartDialog = false;
+                });
+                // Start the timer when user clicks Start
+                game!.startTimer();
+              },
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 12,
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              child: const Text('START'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper method to build stat rows
+  Widget _buildStatRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            value,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   void handleTap(int r, int c) {
@@ -40,70 +132,124 @@ class _GameBoardState extends State<GameBoard> {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: Text(game!.isGameWon ? '🎉 You Won!' : '💣 Game Over'),
+            title: Text(
+              game!.isGameWon ? '🎉 You Won!' : '💣 Game Over',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             content: Text(
               game!.isGameWon
                   ? 'Level ${game!.level} complete!\nScore: ${game!.score}'
                   : 'You hit a mine.\nFinal Score: ${game!.score}',
+              style: Theme.of(context).textTheme.bodyLarge,
             ),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
 
-                  final bool won = game!.isGameWon;
-                  final int newStreak = won ? game!.winningStreak + 1 : 0;
-
-                  int base = 100;
-                  int bonus = 0;
-                  int updatedScore = game!.score;
-
-                  if (won && newStreak >= 2) {
-                    bonus = (base * (newStreak * 0.1)).round();
-                    updatedScore += base + bonus;
-                  } else if (won) {
-                    updatedScore += base;
-                  }
-
-                  final int updatedStreak = won ? newStreak : 0;
-                  final int updatedHints = won
-                      ? game!.hintCount + 1
-                      : game!.hintCount;
-
-                  setState(() {
-                    game = Game(
-                      9,
-                      9,
-                      won ? game!.bombs + 1 : game!.bombs,
-                      level: won ? game!.level + 1 : game!.level,
-                      score: updatedScore,
-                      winningStreak: updatedStreak,
-                      hintCount: updatedHints,
-                    );
-                    game!.startTimer();
-                  });
-
-                  if (won && bonus > 0) {
-                    Future.delayed(Duration.zero, () {
-                      showDialog(
-                        context: context,
-                        barrierDismissible: true,
-                        builder: (context) => GestureDetector(
-                          onTap: () => Navigator.of(context).pop(),
-                          child: AlertDialog(
-                            title: const Text("🔥 Winning Streak Bonus!"),
-                            content: Text(
-                              "You earned a $bonus point bonus for a $newStreak-win streak!",
-                            ),
-                          ),
-                        ),
-                      );
-                    });
+                  if (game!.isGameWon) {
+                    _startNextLevel(); // Use the new method
+                  } else {
+                    _restartGame(); // Use the new method
                   }
                 },
-                child: Text(game!.isGameWon ? 'Next Level' : 'Retry'),
+                child: Text(
+                  game!.isGameWon ? 'Next Level' : 'Retry',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
               ),
             ],
+          ),
+        );
+      });
+    }
+  }
+
+  // Update the restart button onPressed to also show the dialog
+  void _restartGame() {
+    // Check if this is a loss (game over but not won) to reset streak
+    bool isLoss = game!.isGameOver && !game!.isGameWon;
+
+    setState(() {
+      game = Game(
+        game!.rows,
+        game!.cols,
+        game!.bombs,
+        level: game!.level,
+        score: game!.score,
+        winningStreak: isLoss
+            ? 0
+            : game!.winningStreak, // Reset streak to 0 if lost
+        hintCount: game!.hintCount,
+      );
+      _showStartDialog = true;
+    });
+
+    // Show start dialog for restart too
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_showStartDialog) {
+        _showGameStartDialog();
+      }
+    });
+  }
+
+  // Update the "Next Level" logic to also show the dialog
+  void _startNextLevel() {
+    final bool won = game!.isGameWon;
+    final int newStreak = won ? game!.winningStreak + 1 : 0;
+
+    int base = 100;
+    int bonus = 0;
+    int updatedScore = game!.score;
+
+    if (won && newStreak >= 2) {
+      bonus = (base * (newStreak * 0.1)).round();
+      updatedScore += base + bonus;
+    } else if (won) {
+      updatedScore += base;
+    }
+
+    final int updatedStreak = won ? newStreak : 0;
+    final int updatedHints = won ? game!.hintCount + 1 : game!.hintCount;
+
+    setState(() {
+      game = Game(
+        9,
+        9,
+        won ? game!.bombs + 1 : game!.bombs,
+        level: won ? game!.level + 1 : game!.level,
+        score: updatedScore,
+        winningStreak: updatedStreak,
+        hintCount: updatedHints,
+      );
+      _showStartDialog = true;
+    });
+
+    // Show start dialog for next level
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_showStartDialog) {
+        _showGameStartDialog();
+      }
+    });
+
+    // Show bonus dialog if applicable
+    if (won && bonus > 0) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        showDialog(
+          context: context,
+          barrierDismissible: true,
+          builder: (context) => GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: AlertDialog(
+              title: Text(
+                "🔥 Winning Streak Bonus!",
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              content: Text(
+                "You earned a $bonus point bonus for a $newStreak-win streak!",
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
           ),
         );
       });
@@ -113,7 +259,16 @@ class _GameBoardState extends State<GameBoard> {
   void handleFlag(int r, int c) {
     setState(() {
       if (!game!.board[r][c].isRevealed && !game!.isGameOver) {
-        game!.board[r][c].isFlagged = !game!.board[r][c].isFlagged;
+        // If trying to flag a tile
+        if (!game!.board[r][c].isFlagged) {
+          // Only allow flagging if we have remaining flags
+          if (game!.remainingFlags > 0) {
+            game!.board[r][c].isFlagged = true;
+          }
+        } else {
+          // Always allow unflagging
+          game!.board[r][c].isFlagged = false;
+        }
         game!.checkWin();
       }
     });
@@ -140,14 +295,14 @@ class _GameBoardState extends State<GameBoard> {
                 children: [
                   Text(
                     'Level: ${game!.level}',
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                   Text(
                     'Score: ${game!.score}',
-                    style: const TextStyle(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
                     ),
@@ -180,7 +335,9 @@ class _GameBoardState extends State<GameBoard> {
                           const SizedBox(width: 8),
                           Text(
                             'x ${game!.remainingFlags}',
-                            style: const TextStyle(fontSize: 18),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontSize: 18),
                           ),
                         ],
                       ),
@@ -194,7 +351,9 @@ class _GameBoardState extends State<GameBoard> {
                           const SizedBox(width: 8),
                           Text(
                             'x ${game!.winningStreak}',
-                            style: const TextStyle(fontSize: 18),
+                            style: Theme.of(
+                              context,
+                            ).textTheme.titleLarge?.copyWith(fontSize: 18),
                           ),
                         ],
                       ),
@@ -264,7 +423,10 @@ class _GameBoardState extends State<GameBoard> {
                               height: 50,
                             ),
                             const SizedBox(width: 8),
-                            Text('x ${game!.hintCount}'),
+                            Text(
+                              'x ${game!.hintCount}',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
                           ],
                         ),
                       ),
@@ -279,20 +441,7 @@ class _GameBoardState extends State<GameBoard> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            game = Game(
-                              game!.rows,
-                              game!.cols,
-                              game!.bombs,
-                              level: game!.level,
-                              score: game!.score,
-                              winningStreak: game!.winningStreak,
-                              hintCount: game!.hintCount,
-                            );
-                            game!.startTimer();
-                          });
-                        },
+                        onPressed: _restartGame, // Use the new method
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [

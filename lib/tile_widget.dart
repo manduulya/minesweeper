@@ -41,11 +41,12 @@ class TileWidget extends StatelessWidget {
                   : (tile.adjacentBombs > 0
                         ? Text(
                             '${tile.adjacentBombs}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 18,
-                              color: Colors.black,
-                            ),
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                  color: Colors.black,
+                                ),
                           )
                         : null)
             : (tile.isFlagged
