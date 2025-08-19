@@ -122,46 +122,93 @@ class _GameBoardState extends State<GameBoard> {
     );
   }
 
-  void handleTap(int r, int c) {
+  void handleTap(int r, int c) async {
     setState(() {
       game!.reveal(r, c);
     });
 
     if (game!.isGameOver) {
-      Future.delayed(Duration.zero, () {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(
-              game!.isGameWon ? '🎉 You Won!' : '💣 Game Over',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            content: Text(
-              game!.isGameWon
-                  ? 'Level ${game!.level} complete!\nScore: ${game!.score}'
-                  : 'You hit a mine.\nFinal Score: ${game!.score}',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
+      if (game!.isGameWon) {
+        // Handle win case immediately
+        Future.delayed(Duration.zero, () {
+          _showWinDialog();
+        });
+      } else {
+        // Handle loss case with sequential bomb reveal animation
+        await _showBombSequenceAndDialog();
+      }
+    }
+  }
 
-                  if (game!.isGameWon) {
-                    _startNextLevel(); // Use the new method
-                  } else {
-                    _restartGame(); // Use the new method
-                  }
-                },
-                child: Text(
-                  game!.isGameWon ? 'Next Level' : 'Retry',
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ),
-            ],
-          ),
-        );
+  Future<void> _showBombSequenceAndDialog() async {
+    // Get all unrevealed bomb positions and shuffle them
+    List<List<int>> bombPositions = game!.getUnrevealedBombPositions();
+    bombPositions.shuffle(); // Randomize the order
+
+    if (bombPositions.isEmpty) {
+      // If no unrevealed bombs, show dialog immediately
+      _showGameOverDialog();
+      return;
+    }
+
+    // Calculate delay between each bomb reveal (1 second total)
+    int totalBombs = bombPositions.length;
+    int delayMs = totalBombs > 1 ? (1000 / totalBombs).round() : 1000;
+
+    // Reveal bombs one by one
+    for (int i = 0; i < bombPositions.length; i++) {
+      int r = bombPositions[i][0];
+      int c = bombPositions[i][1];
+
+      setState(() {
+        game!.revealBombAt(r, c);
       });
+
+      // Wait before revealing next bomb (except for the last one)
+      if (i < bombPositions.length - 1) {
+        await Future.delayed(Duration(milliseconds: delayMs));
+      }
+    }
+
+    // Hold for 1 more second after all bombs are revealed
+    await Future.delayed(const Duration(seconds: 1));
+
+    // Stop all animations
+    setState(() {
+      game!.stopBombAnimations();
+    });
+
+    // Show the game over dialog
+    _showGameOverDialog();
+  }
+
+  void _showGameOverDialog() {
+    if (mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            '💣 Game Over',
+            style: Theme.of(context).textTheme.titleLarge,
+          ),
+          content: Text(
+            'You hit a mine.\nFinal Score: ${game!.score}',
+            style: Theme.of(context).textTheme.bodyLarge,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _restartGame();
+              },
+              child: Text(
+                'Retry',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -272,6 +319,42 @@ class _GameBoardState extends State<GameBoard> {
         game!.checkWin();
       }
     });
+
+    // Check for win immediately after flagging and show dialog
+    if (game!.isGameWon && game!.isGameOver) {
+      Future.delayed(Duration.zero, () {
+        _showWinDialog();
+      });
+    }
+  }
+
+  // Add this method to show win dialog
+  void _showWinDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '🎉 You Won!',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        content: Text(
+          'Level ${game!.level} complete!\nScore: ${game!.score}',
+          style: Theme.of(context).textTheme.bodyLarge,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              _startNextLevel();
+            },
+            child: Text(
+              'Next Level',
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

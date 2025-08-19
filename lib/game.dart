@@ -101,7 +101,7 @@ class Game {
 
     if (board[r][c].isBomb) {
       isGameOver = true;
-      _revealAll();
+      // Don't reveal all immediately - let the UI handle the animation
       return;
     }
 
@@ -119,6 +119,38 @@ class Game {
     checkWin(); // Check win after revealing
   }
 
+  // Get list of all unrevealed bomb positions
+  List<List<int>> getUnrevealedBombPositions() {
+    List<List<int>> bombPositions = [];
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (board[r][c].isBomb && !board[r][c].isRevealed) {
+          bombPositions.add([r, c]);
+        }
+      }
+    }
+    return bombPositions;
+  }
+
+  // Method to reveal a specific bomb with animation
+  void revealBombAt(int r, int c) {
+    if (board[r][c].isBomb) {
+      board[r][c].isRevealed = true;
+      board[r][c].shouldAnimate = true;
+    }
+  }
+
+  // Method to stop bomb animations
+  void stopBombAnimations() {
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        if (board[r][c].isBomb) {
+          board[r][c].shouldAnimate = false;
+        }
+      }
+    }
+  }
+
   void _revealAll() {
     for (var row in board) {
       for (var tile in row) {
@@ -128,22 +160,31 @@ class Game {
   }
 
   bool checkWin() {
-    bool allSafeTilesRevealed = true;
-    bool allBombsFlaggedCorrectly = true;
+    // Check if all bombs are correctly flagged and no non-bombs are flagged
+    bool allBombsFlagged = true;
+    bool noIncorrectFlags = true;
 
-    for (var row in board) {
-      for (var tile in row) {
-        if (!tile.isBomb && !tile.isRevealed) allSafeTilesRevealed = false;
-        if (tile.isBomb && !tile.isFlagged) allBombsFlaggedCorrectly = false;
-        if (!tile.isBomb && tile.isFlagged) allBombsFlaggedCorrectly = false;
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        final tile = board[r][c];
+
+        // If it's a bomb and not flagged, we haven't won yet
+        if (tile.isBomb && !tile.isFlagged) {
+          allBombsFlagged = false;
+        }
+
+        // If it's not a bomb but is flagged, that's incorrect
+        if (!tile.isBomb && tile.isFlagged) {
+          noIncorrectFlags = false;
+        }
       }
     }
 
-    if (allSafeTilesRevealed || allBombsFlaggedCorrectly) {
+    // Win only if all bombs are flagged and no incorrect flags
+    if (allBombsFlagged && noIncorrectFlags) {
       stopTimer();
       isGameOver = true;
       isGameWon = true;
-
       return true;
     }
 
