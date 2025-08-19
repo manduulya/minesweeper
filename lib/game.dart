@@ -151,13 +151,13 @@ class Game {
     }
   }
 
-  void _revealAll() {
-    for (var row in board) {
-      for (var tile in row) {
-        tile.isRevealed = true;
-      }
-    }
-  }
+  // void _revealAll() {
+  //   for (var row in board) {
+  //     for (var tile in row) {
+  //       tile.isRevealed = true;
+  //     }
+  //   }
+  // }
 
   bool checkWin() {
     // Check if all bombs are correctly flagged and no non-bombs are flagged
