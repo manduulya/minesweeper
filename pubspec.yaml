@@ -76,6 +76,11 @@ flutter:
     - assets/restartButton.png
     - assets/hintButton.png
     - assets/streakIcon.png
+  
+  fonts: 
+    - family: Mogul
+      fonts: 
+        - asset: assets/fonts/Mogul-Acsioma.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:
