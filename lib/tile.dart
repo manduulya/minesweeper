@@ -4,5 +4,6 @@ class Tile {
   bool isFlagged = false;
   int adjacentBombs = 0;
   bool isHintRevealed = false;
+  bool isSafelyRevealed = false;
   bool shouldAnimate = false;
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_experiment/click_button_widget.dart';
 import '../board.dart'; // or wherever GameBoard lives
 
 class LandingPage extends StatelessWidget {
@@ -40,7 +41,7 @@ class LandingPage extends StatelessWidget {
                 const SizedBox(height: 15),
 
                 // Play button
-                ElevatedButton(
+                ClickButton(
                   onPressed: () {
                     Navigator.of(context).pushReplacement(
                       MaterialPageRoute(builder: (_) => const GameBoard()),

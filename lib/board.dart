@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_experiment/click_button_widget.dart';
+import 'package:mobile_experiment/sound_manager.dart';
 import 'game.dart';
 import 'tile_widget.dart';
 
@@ -12,6 +14,7 @@ class GameBoard extends StatefulWidget {
 class _GameBoardState extends State<GameBoard> {
   Game? game; // nullable for loading state
   bool _showStartDialog = false; // Add this flag
+  bool isHintMode = false;
 
   @override
   void initState() {
@@ -66,7 +69,7 @@ class _GameBoardState extends State<GameBoard> {
         ),
         actions: [
           Center(
-            child: ElevatedButton(
+            child: ClickButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 setState(() {
@@ -123,18 +126,46 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   void handleTap(int r, int c) async {
+    if (isHintMode &&
+        !game!.board[r][c].isRevealed &&
+        !game!.board[r][c].isFlagged) {
+      setState(() {
+        game!.board[r][c].isRevealed = true;
+        game!.board[r][c].isHintRevealed = true; // mark it as hint
+        game!.hintCount--; // consume a hint
+        isHintMode = false; // exit hint mode
+
+        // If it's a bomb revealed by hint, mark it as safely revealed
+        if (game!.board[r][c].isBomb) {
+          game!.board[r][c].isSafelyRevealed = true;
+          // Play a different sound for safely revealed bombs
+          // SoundManager.playHint(); // or create a special bomb-hint sound
+        }
+      });
+
+      game!.checkWin();
+
+      // Check for win immediately after hint reveal and show dialog
+      if (game!.isGameWon && game!.isGameOver) {
+        Future.delayed(Duration.zero, () {
+          _showWinDialog();
+        });
+      }
+
+      return; // don't run normal reveal
+    }
+
+    // Normal reveal
     setState(() {
       game!.reveal(r, c);
     });
 
     if (game!.isGameOver) {
       if (game!.isGameWon) {
-        // Handle win case immediately
         Future.delayed(Duration.zero, () {
           _showWinDialog();
         });
       } else {
-        // Handle loss case with sequential bomb reveal animation
         await _showBombSequenceAndDialog();
       }
     }
@@ -196,7 +227,7 @@ class _GameBoardState extends State<GameBoard> {
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           actions: [
-            TextButton(
+            ClickButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _restartGame();
@@ -311,10 +342,12 @@ class _GameBoardState extends State<GameBoard> {
           // Only allow flagging if we have remaining flags
           if (game!.remainingFlags > 0) {
             game!.board[r][c].isFlagged = true;
+            SoundManager.playFlag();
           }
         } else {
           // Always allow unflagging
           game!.board[r][c].isFlagged = false;
+          SoundManager.playUnflag();
         }
         game!.checkWin();
       }
@@ -342,7 +375,7 @@ class _GameBoardState extends State<GameBoard> {
           style: Theme.of(context).textTheme.bodyLarge,
         ),
         actions: [
-          TextButton(
+          ClickButton(
             onPressed: () {
               Navigator.of(context).pop();
               _startNextLevel();
@@ -476,7 +509,7 @@ class _GameBoardState extends State<GameBoard> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       // Use Hint Button
-                      ElevatedButton(
+                      ClickButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,
@@ -489,14 +522,15 @@ class _GameBoardState extends State<GameBoard> {
                         onPressed: (game!.hintCount > 0 && !game!.isGameOver)
                             ? () {
                                 setState(() {
-                                  final success = game!.useHint();
-                                  if (success) {
-                                    game!.hintCount--;
-                                    game!.checkWin();
-                                  }
+                                  // final success = game!.useHint();
+                                  // if (success) {
+                                  //   game!.hintCount--;
+                                  //   game!.checkWin();
+                                  // }
+                                  isHintMode = true; // enable hint mode
                                 });
                               }
-                            : null,
+                            : () {},
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -514,7 +548,7 @@ class _GameBoardState extends State<GameBoard> {
                         ),
                       ),
                       // Restart Button
-                      ElevatedButton(
+                      ClickButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,

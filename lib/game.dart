@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:mobile_experiment/sound_manager.dart';
 import 'tile.dart';
 
 class Game {
@@ -25,13 +26,21 @@ class Game {
   }
 
   int get remainingFlags {
-    int flags = 0;
+    int currentFlags = 0;
+    int safelyRevealedBombs = 0;
+
     for (var row in board) {
       for (var tile in row) {
-        if (tile.isFlagged) flags++;
+        if (tile.isFlagged) currentFlags++;
+        if (tile.isBomb && tile.isSafelyRevealed) safelyRevealedBombs++;
       }
     }
-    return bombCount - flags;
+
+    // Effective bomb count = original bomb count - safely revealed bombs
+    int effectiveBombCount = bombCount - safelyRevealedBombs;
+
+    // Remaining flags needed = effective bombs - currently placed flags
+    return effectiveBombCount - currentFlags;
   }
 
   int calculateBonus() {
@@ -100,10 +109,13 @@ class Game {
     board[r][c].isRevealed = true;
 
     if (board[r][c].isBomb) {
+      SoundManager.playLost();
       isGameOver = true;
       // Don't reveal all immediately - let the UI handle the animation
       return;
     }
+
+    SoundManager.playReveal();
 
     if (board[r][c].adjacentBombs == 0) {
       for (int i = -1; i <= 1; i++) {
@@ -159,18 +171,39 @@ class Game {
   //   }
   // }
 
+  // In Game class - Updated checkWin method
   bool checkWin() {
-    // Check if all bombs are correctly flagged and no non-bombs are flagged
-    bool allBombsFlagged = true;
+    // Count safely revealed bombs (revealed by hints)
+    int safelyRevealedBombs = 0;
+    for (int r = 0; r < rows; r++) {
+      for (int c = 0; c < cols; c++) {
+        final tile = board[r][c];
+        if (tile.isBomb && tile.isSafelyRevealed) {
+          safelyRevealedBombs++;
+        }
+      }
+    }
+
+    // Calculate remaining bombs that need to be flagged
+    int remainingBombs = bombCount - safelyRevealedBombs;
+
+    // Check if all remaining bombs are correctly flagged and no non-bombs are flagged
+    bool allRemainingBombsFlagged = true;
     bool noIncorrectFlags = true;
+    int flaggedBombs = 0;
 
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         final tile = board[r][c];
 
-        // If it's a bomb and not flagged, we haven't won yet
-        if (tile.isBomb && !tile.isFlagged) {
-          allBombsFlagged = false;
+        // If it's a bomb that's not safely revealed and not flagged, we haven't won yet
+        if (tile.isBomb && !tile.isSafelyRevealed && !tile.isFlagged) {
+          allRemainingBombsFlagged = false;
+        }
+
+        // Count flagged bombs (excluding safely revealed ones)
+        if (tile.isBomb && !tile.isSafelyRevealed && tile.isFlagged) {
+          flaggedBombs++;
         }
 
         // If it's not a bomb but is flagged, that's incorrect
@@ -180,17 +213,20 @@ class Game {
       }
     }
 
-    // Win only if all bombs are flagged and no incorrect flags
-    if (allBombsFlagged && noIncorrectFlags) {
+    // Win if all remaining bombs are flagged and no incorrect flags
+    if (allRemainingBombsFlagged &&
+        noIncorrectFlags &&
+        flaggedBombs == remainingBombs) {
       stopTimer();
       isGameOver = true;
       isGameWon = true;
+      SoundManager.playWon();
       return true;
     }
-
     return false;
   }
 
+  // Updated remainingFlags getter to account for safely revealed bombs
   bool useHint() {
     if (isGameOver) return false;
 
