@@ -34,6 +34,10 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  flutter_facebook_auth: ^7.1.2
+  google_sign_in: ^7.1.1
+  http: ^1.5.0
+  audioplayers: ^6.1.0
 
 dev_dependencies:
   flutter_test:
@@ -69,6 +73,20 @@ flutter:
     - assets/WelcomeTitle.png
     - assets/landingPageLogo.png
     - assets/playButton.png   
+    - assets/bombRevealed.png
+    - assets/restartButton.png
+    - assets/hintButton.png
+    - assets/streakIcon.png
+    - assets/sounds/
+  
+  fonts: 
+    - family: Acsioma
+      fonts: 
+        - asset: assets/fonts/Mogul-Acsioma.ttf
+    - family: Topaz 
+      fonts:
+        - asset: assets/fonts/Mogul-Topaz.ttf
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:
