@@ -80,9 +80,13 @@ flutter:
     - assets/sounds/
   
   fonts: 
-    - family: Mogul
+    - family: Acsioma
       fonts: 
         - asset: assets/fonts/Mogul-Acsioma.ttf
+    - family: Topaz 
+      fonts:
+        - asset: assets/fonts/Mogul-Topaz.ttf
+
 
   # To add assets to your application, add an assets section, like this:
   # assets:

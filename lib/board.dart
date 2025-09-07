@@ -412,14 +412,14 @@ class _GameBoardState extends State<GameBoard> {
                   Text(
                     'Level: ${game!.level}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontFamily: 'Mogul',
+                      fontFamily: 'Acsioma',
                       fontSize: 26,
                     ),
                   ),
                   Text(
                     'Score: ${game!.score}',
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontFamily: 'Mogul',
+                      fontFamily: 'Acsioma',
                       fontSize: 26,
                     ),
                   ),
