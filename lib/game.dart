@@ -12,6 +12,8 @@ class Game {
   bool isGameWon = false; // Optional for future
   int level;
   int score;
+  int bonus = 0;
+  int finalScore = 0;
   DateTime? startTime;
   DateTime? endTime;
   int winningStreak;
@@ -111,6 +113,7 @@ class Game {
     if (board[r][c].isBomb) {
       SoundManager.playLost();
       isGameOver = true;
+      finalScore = score;
       // Don't reveal all immediately - let the UI handle the animation
       return;
     }
@@ -163,14 +166,6 @@ class Game {
     }
   }
 
-  // void _revealAll() {
-  //   for (var row in board) {
-  //     for (var tile in row) {
-  //       tile.isRevealed = true;
-  //     }
-  //   }
-  // }
-
   // In Game class - Updated checkWin method
   bool checkWin() {
     // Count safely revealed bombs (revealed by hints)
@@ -221,6 +216,11 @@ class Game {
       isGameOver = true;
       isGameWon = true;
       SoundManager.playWon();
+      int base = 100;
+      winningStreak += 1;
+      bonus = (winningStreak >= 2) ? (base * (winningStreak * 0.1)).round() : 0;
+      score += base + bonus;
+      finalScore = score;
       return true;
     }
     return false;

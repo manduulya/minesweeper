@@ -3,6 +3,7 @@ import 'package:mobile_experiment/click_button_widget.dart';
 import 'package:mobile_experiment/sound_manager.dart';
 import 'game.dart';
 import 'tile_widget.dart';
+import './dialog_utils/dialog_utils.dart';
 
 class GameBoard extends StatefulWidget {
   const GameBoard({super.key});
@@ -42,86 +43,19 @@ class _GameBoardState extends State<GameBoard> {
     });
   }
 
-  // Add this method to show the start game dialog
-  void _showGameStartDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false, // User must click Start button
-      builder: (context) => AlertDialog(
-        title: Text(
-          'Level '
-          '${game!.level}',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(fontSize: 24),
-          textAlign: TextAlign.center,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // _buildStatRow('Level', '${game!.level}'),
-            // const SizedBox(height: 12),
-            _buildStatRow('Score', '${game!.score}'),
-            const SizedBox(height: 12),
-            _buildStatRow('Streak', '${game!.winningStreak}'),
-            const SizedBox(height: 12),
-            _buildStatRow('Hints', '${game!.hintCount}'),
-            const SizedBox(height: 20),
-          ],
-        ),
-        actions: [
-          Center(
-            child: ClickButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                setState(() {
-                  _showStartDialog = false;
-                });
-                // Start the timer when user clicks Start
-                game!.startTimer();
-              },
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 12,
-                ),
-                textStyle: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              child: const Text('START'),
-            ),
-          ),
-        ],
-      ),
-    );
+  void _handleGameStart() {
+    Navigator.of(context).pop();
+    setState(() {
+      _showStartDialog = false;
+    });
+    game!.startTimer();
   }
 
-  // Helper method to build stat rows
-  Widget _buildStatRow(String label, String value) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: Theme.of(
-            context,
-          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w500),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Text(
-            value,
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-      ],
+  void _showGameStartDialog() {
+    DialogUtils.showGameStartDialog(
+      context: context,
+      game: game!,
+      onStart: _handleGameStart,
     );
   }
 
@@ -147,6 +81,7 @@ class _GameBoardState extends State<GameBoard> {
 
       // Check for win immediately after hint reveal and show dialog
       if (game!.isGameWon && game!.isGameOver) {
+        game!.finalScore = game!.score;
         Future.delayed(Duration.zero, () {
           _showWinDialog();
         });
@@ -162,6 +97,7 @@ class _GameBoardState extends State<GameBoard> {
 
     if (game!.isGameOver) {
       if (game!.isGameWon) {
+        game!.finalScore = game!.score;
         Future.delayed(Duration.zero, () {
           _showWinDialog();
         });
@@ -214,33 +150,11 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   void _showGameOverDialog() {
-    if (mounted) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(
-            '💣 Game Over',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          content: Text(
-            'You hit a mine.\nFinal Score: ${game!.score}',
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          actions: [
-            ClickButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _restartGame();
-              },
-              child: Text(
-                'Retry',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    DialogUtils.showGameOverDialog(
+      context: context,
+      game: game!,
+      onRetry: _restartGame,
+    );
   }
 
   // Update the restart button onPressed to also show the dialog
@@ -271,23 +185,13 @@ class _GameBoardState extends State<GameBoard> {
     });
   }
 
-  // Update the "Next Level" logic to also show the dialog
   void _startNextLevel() {
     final bool won = game!.isGameWon;
-    final int newStreak = won ? game!.winningStreak + 1 : 0;
-
-    int base = 100;
-    int bonus = 0;
-    int updatedScore = game!.score;
-
-    if (won && newStreak >= 2) {
-      bonus = (base * (newStreak * 0.1)).round();
-      updatedScore += base + bonus;
-    } else if (won) {
-      updatedScore += base;
-    }
-
-    final int updatedStreak = won ? newStreak : 0;
+    final int newStreak = won
+        ? game!.winningStreak
+        : 0; // Already updated in checkWin
+    final int updatedScore =
+        game!.score; // Already includes bonus from checkWin
     final int updatedHints = won ? game!.hintCount + 1 : game!.hintCount;
 
     setState(() {
@@ -297,41 +201,17 @@ class _GameBoardState extends State<GameBoard> {
         won ? game!.bombs + 1 : game!.bombs,
         level: won ? game!.level + 1 : game!.level,
         score: updatedScore,
-        winningStreak: updatedStreak,
+        winningStreak: newStreak,
         hintCount: updatedHints,
       );
       _showStartDialog = true;
     });
 
-    // Show start dialog for next level
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_showStartDialog) {
         _showGameStartDialog();
       }
     });
-
-    // Show bonus dialog if applicable
-    if (won && bonus > 0) {
-      Future.delayed(const Duration(milliseconds: 500), () {
-        showDialog(
-          context: context,
-          barrierDismissible: true,
-          builder: (context) => GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: AlertDialog(
-              title: Text(
-                "🔥 Winning Streak Bonus!",
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              content: Text(
-                "You earned a $bonus point bonus for a $newStreak-win streak!",
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-            ),
-          ),
-        );
-      });
-    }
   }
 
   void handleFlag(int r, int c) {
@@ -355,38 +235,18 @@ class _GameBoardState extends State<GameBoard> {
 
     // Check for win immediately after flagging and show dialog
     if (game!.isGameWon && game!.isGameOver) {
+      game!.finalScore = game!.score; // store final score
       Future.delayed(Duration.zero, () {
         _showWinDialog();
       });
     }
   }
 
-  // Add this method to show win dialog
   void _showWinDialog() {
-    showDialog(
+    DialogUtils.showWinDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          '🎉 You Won!',
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
-        content: Text(
-          'Level ${game!.level} complete!\nScore: ${game!.score}',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        actions: [
-          ClickButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _startNextLevel();
-            },
-            child: Text(
-              'Next Level',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-          ),
-        ],
-      ),
+      game: game!,
+      onNextLevel: _startNextLevel,
     );
   }
 
