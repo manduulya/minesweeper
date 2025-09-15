@@ -27,7 +27,7 @@ class _GameBoardState extends State<GameBoard> {
     // Optional: simulate a longer load time (remove this line in production)
     await Future.delayed(const Duration(seconds: 1));
 
-    final newGame = Game(9, 9, 10);
+    final newGame = Game(12, 12, 10);
     // Don't start timer immediately - wait for user to click Start
 
     setState(() {
@@ -177,12 +177,12 @@ class _GameBoardState extends State<GameBoard> {
       _showStartDialog = true;
     });
 
-    // Show start dialog for restart too
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_showStartDialog) {
-        _showGameStartDialog();
-      }
-    });
+    // // Show start dialog for restart too
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (_showStartDialog) {
+    //     _showGameStartDialog();
+    //   }
+    // });
   }
 
   void _startNextLevel() {
@@ -205,6 +205,7 @@ class _GameBoardState extends State<GameBoard> {
         hintCount: updatedHints,
       );
       _showStartDialog = true;
+      game!.finalScore = updatedScore;
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {

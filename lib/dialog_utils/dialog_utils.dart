@@ -3,6 +3,7 @@ import 'package:mobile_experiment/click_button_widget.dart';
 import '../game.dart';
 import 'animated_start.dart';
 import 'animated_counter.dart';
+import 'show_level_overlay.dart';
 
 class DialogUtils {
   /// Shows the win dialog with custom PNG background and slide animation
@@ -209,7 +210,7 @@ class DialogUtils {
     );
   }
 
-  /// Shows the game over dialog
+  /// Shows the game over dialogwaeg
   static void showGameOverDialog({
     required BuildContext context,
     required Game game,
@@ -231,6 +232,7 @@ class DialogUtils {
             decoration: BoxDecoration(
               color: Color(0xFF1B2844),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Color(0xFFffa200), width: 25),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.3),
@@ -255,88 +257,112 @@ class DialogUtils {
                 ),
 
                 const SizedBox(height: 24),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
+                ClickButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    onRetry();
+                    showLevelOverlay(context, game.level);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 48,
+                      vertical: 16,
+                    ),
+                    backgroundColor: Theme.of(context).colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    elevation: 8,
+                    shadowColor: Colors.black.withOpacity(0.3),
                   ),
-                  margin: const EdgeInsets.symmetric(horizontal: 24),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF78a7d1),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        offset: Offset(0, 4),
-                        blurRadius: 8,
-                        color: Colors.black.withOpacity(0.3),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedCounter(
-                        value: game.finalScore,
-                        prefix: 'Score: ',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontFamily: 'Acsioma',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF102a43),
-                        ),
-                      ),
-                      AnimatedCounter(
-                        value: game.bombCount,
-                        prefix: 'Mines: ',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontFamily: 'Acsioma',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF102a43),
-                        ),
-                      ),
-                      AnimatedCounter(
-                        value: game.hintCount,
-                        prefix: 'Hints: ',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontFamily: 'Acsioma',
-                          fontSize: 24,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF102a43),
-                        ),
-                      ),
-                      ClickButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                          onRetry();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 48,
-                            vertical: 16,
-                          ),
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          elevation: 8,
-                          shadowColor: Colors.black.withOpacity(0.3),
-                        ),
-                        child: const Text(
-                          'Try Again',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: const Text(
+                    'Try Again',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
+
+                // Container(
+                //   padding: const EdgeInsets.symmetric(
+                //     horizontal: 32,
+                //     vertical: 16,
+                //   ),
+                //   margin: const EdgeInsets.symmetric(horizontal: 24),
+                //   decoration: BoxDecoration(
+                //     color: Color(0xFF78a7d1),
+                //     borderRadius: BorderRadius.circular(16),
+                //     boxShadow: [
+                //       BoxShadow(
+                //         offset: Offset(0, 4),
+                //         blurRadius: 8,
+                //         color: Colors.black.withOpacity(0.3),
+                //       ),
+                //     ],
+                //   ),
+                //   child: Column(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: [
+                //       AnimatedCounter(
+                //         value: game.finalScore,
+                //         prefix: 'Score: ',
+                //         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                //           fontFamily: 'Acsioma',
+                //           fontSize: 24,
+                //           fontWeight: FontWeight.w600,
+                //           color: Color(0xFF102a43),
+                //         ),
+                //       ),
+                //       AnimatedCounter(
+                //         value: game.bombCount,
+                //         prefix: 'Mines: ',
+                //         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                //           fontFamily: 'Acsioma',
+                //           fontSize: 24,
+                //           fontWeight: FontWeight.w600,
+                //           color: Color(0xFF102a43),
+                //         ),
+                //       ),
+                //       AnimatedCounter(
+                //         value: game.hintCount,
+                //         prefix: 'Hints: ',
+                //         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                //           fontFamily: 'Acsioma',
+                //           fontSize: 24,
+                //           fontWeight: FontWeight.w600,
+                //           color: Color(0xFF102a43),
+                //         ),
+                //       ),
+                //       ClickButton(
+                //         onPressed: () {
+                //           Navigator.of(context).pop();
+                //           onRetry();
+                //         },
+                //         style: ElevatedButton.styleFrom(
+                //           padding: const EdgeInsets.symmetric(
+                //             horizontal: 48,
+                //             vertical: 16,
+                //           ),
+                //           backgroundColor: Theme.of(
+                //             context,
+                //           ).colorScheme.primary,
+                //           foregroundColor: Colors.white,
+                //           shape: RoundedRectangleBorder(
+                //             borderRadius: BorderRadius.circular(24),
+                //           ),
+                //           elevation: 8,
+                //           shadowColor: Colors.black.withOpacity(0.3),
+                //         ),
+                //         child: const Text(
+                //           'Try Again',
+                //           style: TextStyle(
+                //             fontSize: 20,
+                //             fontWeight: FontWeight.bold,
+                //           ),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
               ],
             ),
           ),
@@ -366,6 +392,7 @@ class DialogUtils {
             decoration: BoxDecoration(
               color: Color(0xFF1B2844),
               borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Color(0xFFffa200), width: 25),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.3),
