@@ -228,6 +228,7 @@ class Game {
       SoundManager.playWon();
       int base = 100;
       winningStreak += 1;
+      hintCount += 1;
       bonus = (winningStreak >= 2) ? (base * (winningStreak * 0.1)).round() : 0;
       score += base + bonus;
       finalScore = score;
