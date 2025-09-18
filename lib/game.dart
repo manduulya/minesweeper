@@ -18,6 +18,7 @@ class Game {
   DateTime? endTime;
   int winningStreak;
   int hintCount;
+  final List<List<int>>? shape;
 
   void startTimer() {
     startTime = DateTime.now();
@@ -59,6 +60,7 @@ class Game {
     this.score = 0,
     this.winningStreak = 0,
     this.hintCount = 3,
+    this.shape,
   }) {
     _initBoard();
     _placeBombs();
@@ -66,7 +68,15 @@ class Game {
   }
 
   void _initBoard() {
-    board = List.generate(rows, (_) => List.generate(cols, (_) => Tile()));
+    board = List.generate(
+      rows,
+      (r) => List.generate(cols, (c) {
+        final tile = Tile();
+        // Mark tile as active/inactive based on shape
+        tile.isActive = shape == null ? true : shape![r][c] == 1;
+        return tile;
+      }),
+    );
   }
 
   void _placeBombs() {
@@ -75,7 +85,7 @@ class Game {
     while (placed < bombCount) {
       final r = rand.nextInt(rows);
       final c = rand.nextInt(cols);
-      if (!board[r][c].isBomb) {
+      if (board[r][c].isActive && !board[r][c].isBomb) {
         board[r][c].isBomb = true;
         placed++;
       }

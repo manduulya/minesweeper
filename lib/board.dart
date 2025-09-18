@@ -4,6 +4,7 @@ import 'package:mobile_experiment/sound_manager.dart';
 import 'game.dart';
 import 'tile_widget.dart';
 import './dialog_utils/dialog_utils.dart';
+import 'levels/levels_loader.dart';
 
 class GameBoard extends StatefulWidget {
   const GameBoard({super.key});
@@ -13,34 +14,49 @@ class GameBoard extends StatefulWidget {
 }
 
 class _GameBoardState extends State<GameBoard> {
-  Game? game; // nullable for loading state
-  bool _showStartDialog = false; // Add this flag
+  Game? game;
+  bool _showStartDialog = false;
   bool isHintMode = false;
+  bool _inputLocked = false;
+
+  List<Map<String, dynamic>> levels = [];
+  int currentLevelIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    _initializeGame();
+    _loadLevelsAndStart();
   }
 
-  Future<void> _initializeGame() async {
-    // Optional: simulate a longer load time (remove this line in production)
-    await Future.delayed(const Duration(seconds: 1));
+  Future<void> _loadLevelsAndStart() async {
+    levels = await loadLevels();
+    currentLevelIndex = 0;
+    _initializeGameFromLevel(currentLevelIndex);
+  }
 
-    final newGame = Game(12, 12, 10);
-    // Don't start timer immediately - wait for user to click Start
-
+  void _initializeGameFromLevel(int levelIdx) {
+    final levelData = levels[levelIdx];
+    final newGame = Game(
+      levelData['rows'],
+      levelData['cols'],
+      levelData['bombs'],
+      level: levelData['level'],
+      score: game?.score ?? 0,
+      winningStreak: game?.winningStreak ?? 0,
+      hintCount: game?.hintCount ?? 3,
+      shape: (levelData['shape'] as List)
+          .map((row) => (row as List).map((e) => e as int).toList())
+          .toList(),
+    );
     setState(() {
       game = newGame;
-      _showStartDialog = true; // Show the start dialog
+      _showStartDialog = true;
     });
-
-    // Show start dialog after the widget is built
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_showStartDialog) {
-        _showGameStartDialog();
-      }
-    });
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
+    //   if (_showStartDialog) {
+    //     _showGameStartDialog();
+    //   }
+    // });
   }
 
   void _handleGameStart() {
@@ -60,6 +76,7 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   void handleTap(int r, int c) async {
+    if (_inputLocked) return;
     if (isHintMode &&
         !game!.board[r][c].isRevealed &&
         !game!.board[r][c].isFlagged) {
@@ -96,6 +113,7 @@ class _GameBoardState extends State<GameBoard> {
     });
 
     if (game!.isGameOver) {
+      _inputLocked = true;
       if (game!.isGameWon) {
         game!.finalScore = game!.score;
         Future.delayed(Duration.zero, () {
@@ -108,6 +126,7 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   Future<void> _showBombSequenceAndDialog() async {
+    _inputLocked = true;
     // Get all unrevealed bomb positions and shuffle them
     List<List<int>> bombPositions = game!.getUnrevealedBombPositions();
     bombPositions.shuffle(); // Randomize the order
@@ -161,23 +180,30 @@ class _GameBoardState extends State<GameBoard> {
   void _restartGame() {
     // Check if this is a loss (game over but not won) to reset streak
     bool isLoss = game!.isGameOver && !game!.isGameWon;
-
+    _initializeGameFromLevel(currentLevelIndex);
     setState(() {
-      game = Game(
-        game!.rows,
-        game!.cols,
-        game!.bombs,
-        level: game!.level,
-        score: game!.score,
-        winningStreak: isLoss
-            ? 0
-            : game!.winningStreak, // Reset streak to 0 if lost
-        hintCount: game!.hintCount,
+      _inputLocked = false;
+      if (isLoss) game!.winningStreak = 0;
+    });
+  }
+
+  void _startNextLevel() {
+    setState(() {
+      _inputLocked = false;
+    });
+    if (currentLevelIndex + 1 < levels.length) {
+      currentLevelIndex++;
+      _initializeGameFromLevel(currentLevelIndex);
+    } else {
+      // Optionally show a "You finished all levels!" dialog
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Congratulations! You finished all levels!')),
       );
       _showStartDialog = true;
-    });
+      final updatedScore = game!.score;
+      game!.finalScore = updatedScore;
+    }
 
-    // // Show start dialog for restart too
     // WidgetsBinding.instance.addPostFrameCallback((_) {
     //   if (_showStartDialog) {
     //     _showGameStartDialog();
@@ -185,37 +211,8 @@ class _GameBoardState extends State<GameBoard> {
     // });
   }
 
-  void _startNextLevel() {
-    final bool won = game!.isGameWon;
-    final int newStreak = won
-        ? game!.winningStreak
-        : 0; // Already updated in checkWin
-    final int updatedScore =
-        game!.score; // Already includes bonus from checkWin
-    final int updatedHints = won ? game!.hintCount + 1 : game!.hintCount;
-
-    setState(() {
-      game = Game(
-        9,
-        9,
-        won ? game!.bombs + 1 : game!.bombs,
-        level: won ? game!.level + 1 : game!.level,
-        score: updatedScore,
-        winningStreak: newStreak,
-        hintCount: updatedHints,
-      );
-      _showStartDialog = true;
-      game!.finalScore = updatedScore;
-    });
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_showStartDialog) {
-        _showGameStartDialog();
-      }
-    });
-  }
-
   void handleFlag(int r, int c) {
+    if (_inputLocked) return;
     setState(() {
       if (!game!.board[r][c].isRevealed && !game!.isGameOver) {
         // If trying to flag a tile
@@ -354,8 +351,12 @@ class _GameBoardState extends State<GameBoard> {
                     itemBuilder: (context, index) {
                       final r = index ~/ game!.cols;
                       final c = index % game!.cols;
+                      final tile = game!.board[r][c];
+                      if (!tile.isActive) {
+                        return const SizedBox.shrink(); // Hide inactive tiles
+                      }
                       return TileWidget(
-                        tile: game!.board[r][c],
+                        tile: tile,
                         onTap: () => handleTap(r, c),
                         onLongPress: () => handleFlag(r, c),
                       );
