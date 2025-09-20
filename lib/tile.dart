@@ -6,4 +6,5 @@ class Tile {
   bool isHintRevealed = false;
   bool isSafelyRevealed = false;
   bool shouldAnimate = false;
+  bool isActive = true;
 }
