@@ -203,12 +203,6 @@ class _GameBoardState extends State<GameBoard> {
       final updatedScore = game!.score;
       game!.finalScore = updatedScore;
     }
-
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-    //   if (_showStartDialog) {
-    //     _showGameStartDialog();
-    //   }
-    // });
   }
 
   void handleFlag(int r, int c) {
@@ -337,8 +331,8 @@ class _GameBoardState extends State<GameBoard> {
 
                 // Game board
                 SizedBox(
-                  width: (42 * game!.cols) + (2 * (game!.cols - 1)),
-                  height: (42 * game!.rows) + (2 * (game!.rows - 1)),
+                  width: (40 * game!.cols) + (2 * (game!.cols - 1)),
+                  height: (40 * game!.rows) + (2 * (game!.rows - 1)),
                   child: GridView.builder(
                     physics: const NeverScrollableScrollPhysics(),
                     gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
