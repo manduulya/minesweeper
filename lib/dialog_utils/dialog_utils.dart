@@ -172,9 +172,10 @@ class DialogUtils {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 32.0),
                           child: ClickButton(
-                            onPressed: () {
+                            onPressed: () async {
                               Navigator.of(context).pop();
                               onNextLevel();
+                              showLevelOverlay(context, game.level + 1);
                             },
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
@@ -258,7 +259,7 @@ class DialogUtils {
 
                 const SizedBox(height: 24),
                 ClickButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context).pop();
                     onRetry();
                     showLevelOverlay(context, game.level);
@@ -281,88 +282,6 @@ class DialogUtils {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                 ),
-
-                // Container(
-                //   padding: const EdgeInsets.symmetric(
-                //     horizontal: 32,
-                //     vertical: 16,
-                //   ),
-                //   margin: const EdgeInsets.symmetric(horizontal: 24),
-                //   decoration: BoxDecoration(
-                //     color: Color(0xFF78a7d1),
-                //     borderRadius: BorderRadius.circular(16),
-                //     boxShadow: [
-                //       BoxShadow(
-                //         offset: Offset(0, 4),
-                //         blurRadius: 8,
-                //         color: Colors.black.withOpacity(0.3),
-                //       ),
-                //     ],
-                //   ),
-                //   child: Column(
-                //     mainAxisSize: MainAxisSize.min,
-                //     children: [
-                //       AnimatedCounter(
-                //         value: game.finalScore,
-                //         prefix: 'Score: ',
-                //         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                //           fontFamily: 'Acsioma',
-                //           fontSize: 24,
-                //           fontWeight: FontWeight.w600,
-                //           color: Color(0xFF102a43),
-                //         ),
-                //       ),
-                //       AnimatedCounter(
-                //         value: game.bombCount,
-                //         prefix: 'Mines: ',
-                //         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                //           fontFamily: 'Acsioma',
-                //           fontSize: 24,
-                //           fontWeight: FontWeight.w600,
-                //           color: Color(0xFF102a43),
-                //         ),
-                //       ),
-                //       AnimatedCounter(
-                //         value: game.hintCount,
-                //         prefix: 'Hints: ',
-                //         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                //           fontFamily: 'Acsioma',
-                //           fontSize: 24,
-                //           fontWeight: FontWeight.w600,
-                //           color: Color(0xFF102a43),
-                //         ),
-                //       ),
-                //       ClickButton(
-                //         onPressed: () {
-                //           Navigator.of(context).pop();
-                //           onRetry();
-                //         },
-                //         style: ElevatedButton.styleFrom(
-                //           padding: const EdgeInsets.symmetric(
-                //             horizontal: 48,
-                //             vertical: 16,
-                //           ),
-                //           backgroundColor: Theme.of(
-                //             context,
-                //           ).colorScheme.primary,
-                //           foregroundColor: Colors.white,
-                //           shape: RoundedRectangleBorder(
-                //             borderRadius: BorderRadius.circular(24),
-                //           ),
-                //           elevation: 8,
-                //           shadowColor: Colors.black.withOpacity(0.3),
-                //         ),
-                //         child: const Text(
-                //           'Try Again',
-                //           style: TextStyle(
-                //             fontSize: 20,
-                //             fontWeight: FontWeight.bold,
-                //           ),
-                //         ),
-                //       ),
-                //     ],
-                //   ),
-                // ),
               ],
             ),
           ),
@@ -469,7 +388,7 @@ class DialogUtils {
                         ),
                       ),
                       ClickButton(
-                        onPressed: () {
+                        onPressed: () async {
                           onStart();
                         },
                         style: ElevatedButton.styleFrom(

@@ -18,6 +18,7 @@ class Game {
   DateTime? endTime;
   int winningStreak;
   int hintCount;
+  final List<List<int>>? shape;
 
   void startTimer() {
     startTime = DateTime.now();
@@ -59,14 +60,23 @@ class Game {
     this.score = 0,
     this.winningStreak = 0,
     this.hintCount = 3,
+    this.shape,
   }) {
     _initBoard();
     _placeBombs();
-    _calculateAdjacency();
+    calculateAdjacency();
   }
 
   void _initBoard() {
-    board = List.generate(rows, (_) => List.generate(cols, (_) => Tile()));
+    board = List.generate(
+      rows,
+      (r) => List.generate(cols, (c) {
+        final tile = Tile();
+        // Mark tile as active/inactive based on shape
+        tile.isActive = shape == null ? true : shape![r][c] == 1;
+        return tile;
+      }),
+    );
   }
 
   void _placeBombs() {
@@ -75,14 +85,14 @@ class Game {
     while (placed < bombCount) {
       final r = rand.nextInt(rows);
       final c = rand.nextInt(cols);
-      if (!board[r][c].isBomb) {
+      if (board[r][c].isActive && !board[r][c].isBomb) {
         board[r][c].isBomb = true;
         placed++;
       }
     }
   }
 
-  void _calculateAdjacency() {
+  void calculateAdjacency() {
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         if (board[r][c].isBomb) continue;
@@ -218,6 +228,7 @@ class Game {
       SoundManager.playWon();
       int base = 100;
       winningStreak += 1;
+      hintCount += 1;
       bonus = (winningStreak >= 2) ? (base * (winningStreak * 0.1)).round() : 0;
       score += base + bonus;
       finalScore = score;
