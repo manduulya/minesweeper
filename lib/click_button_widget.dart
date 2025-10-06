@@ -3,13 +3,13 @@ import 'sound_manager.dart';
 
 class ClickButton extends StatelessWidget {
   final Widget child;
-  final VoidCallback onPressed;
+  final Future<void> Function()? onPressed; // allow async
   final ButtonStyle? style;
 
   const ClickButton({
     super.key,
     required this.child,
-    required this.onPressed,
+    this.onPressed,
     this.style,
   });
 
@@ -17,10 +17,12 @@ class ClickButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       style: style,
-      onPressed: () {
-        SoundManager.playClick(); // play sound
-        onPressed(); // execute action
-      },
+      onPressed: onPressed == null
+          ? null
+          : () async {
+              SoundManager.playClick();
+              await onPressed!(); // properly await async action
+            },
       child: child,
     );
   }

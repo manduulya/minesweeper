@@ -172,7 +172,7 @@ class DialogUtils {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 32.0),
                           child: ClickButton(
-                            onPressed: () {
+                            onPressed: () async {
                               Navigator.of(context).pop();
                               onNextLevel();
                               showLevelOverlay(context, game.level + 1);
@@ -259,7 +259,7 @@ class DialogUtils {
 
                 const SizedBox(height: 24),
                 ClickButton(
-                  onPressed: () {
+                  onPressed: () async {
                     Navigator.of(context).pop();
                     onRetry();
                     showLevelOverlay(context, game.level);
@@ -388,7 +388,7 @@ class DialogUtils {
                         ),
                       ),
                       ClickButton(
-                        onPressed: () {
+                        onPressed: () async {
                           onStart();
                         },
                         style: ElevatedButton.styleFrom(

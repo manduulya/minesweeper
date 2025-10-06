@@ -64,7 +64,7 @@ class Game {
   }) {
     _initBoard();
     _placeBombs();
-    _calculateAdjacency();
+    calculateAdjacency();
   }
 
   void _initBoard() {
@@ -92,7 +92,7 @@ class Game {
     }
   }
 
-  void _calculateAdjacency() {
+  void calculateAdjacency() {
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         if (board[r][c].isBomb) continue;
