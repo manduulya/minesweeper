@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_experiment/click_button_widget.dart';
+import 'package:country_flags/country_flags.dart';
 import 'landing_page.dart';
-// Add these imports
 import '../services/api_service.dart';
 import '../service_utils/error_handler.dart';
 import '../service_utils/country_data.dart';
@@ -120,7 +120,7 @@ class _SignUpPageState extends State<SignUpPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: .1),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),
@@ -159,15 +159,20 @@ class _SignUpPageState extends State<SignUpPage> {
                   prefixIcon: _selectedCountryFlag != null
                       ? Padding(
                           padding: const EdgeInsets.all(12.0),
-                          child: Text(
-                            CountryHelper.getFlagEmoji(_selectedCountryFlag!),
-                            style: const TextStyle(fontSize: 20),
-                          ),
+                          child: _selectedCountryFlag == 'international'
+                              ? const Icon(
+                                  Icons.public,
+                                  color: Color(0xFF0B1E3D),
+                                )
+                              : CountryFlag.fromCountryCode(
+                                  _selectedCountryFlag!.toUpperCase(),
+                                  theme: const EmojiTheme(size: 20),
+                                ),
                         )
                       : const Icon(Icons.public, color: Color(0xFF0B1E3D)),
                   hintText: 'Select Country',
                   hintStyle: TextStyle(
-                    color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                    color: const Color(0xFF0B1E3D).withValues(alpha: .6),
                   ),
                   filled: true,
                   fillColor: Colors.white,
@@ -216,10 +221,17 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                         child: Row(
                           children: [
-                            Text(
-                              CountryHelper.getFlagEmoji(option.flagCode),
-                              style: const TextStyle(fontSize: 18),
-                            ),
+                            // Show globe icon for 'international', flag for others
+                            option.flagCode == 'international'
+                                ? const Icon(
+                                    Icons.public,
+                                    color: Color(0xFF0B1E3D),
+                                    size: 24,
+                                  )
+                                : CountryFlag.fromCountryCode(
+                                    option.flagCode.toUpperCase(),
+                                    theme: const EmojiTheme(size: 24),
+                                  ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
@@ -245,7 +257,6 @@ class _SignUpPageState extends State<SignUpPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('🧭 Entered SignUpPage');
     return Scaffold(
       backgroundColor: const Color(0xFFFCF4E4),
       body: SafeArea(
@@ -298,7 +309,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: .1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -309,7 +320,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       decoration: InputDecoration(
                         hintText: 'Username',
                         hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                          color: const Color(0xFF0B1E3D).withValues(alpha: .6),
                         ),
                         prefixIcon: const Icon(
                           Icons.person,
@@ -320,13 +331,17 @@ class _SignUpPageState extends State<SignUpPage> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: const Color(0xFF0B1E3D).withOpacity(0.3),
+                            color: const Color(
+                              0xFF0B1E3D,
+                            ).withValues(alpha: .3),
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide(
-                            color: const Color(0xFF0B1E3D).withOpacity(0.3),
+                            color: const Color(
+                              0xFF0B1E3D,
+                            ).withValues(alpha: .3),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -352,7 +367,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: .1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -364,7 +379,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       decoration: InputDecoration(
                         hintText: 'Email',
                         hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                          color: const Color(0xFF0B1E3D).withValues(alpha: .6),
                         ),
                         prefixIcon: const Icon(
                           Icons.email,
@@ -403,7 +418,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: .1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -415,7 +430,7 @@ class _SignUpPageState extends State<SignUpPage> {
                       decoration: InputDecoration(
                         hintText: 'Password',
                         hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                          color: const Color(0xFF0B1E3D).withValues(alpha: .6),
                         ),
                         prefixIcon: const Icon(
                           Icons.lock,
@@ -447,27 +462,26 @@ class _SignUpPageState extends State<SignUpPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Re-type Password input field (Fixed controller)
+                  // Re-type Password input field
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: .1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
                       ],
                     ),
                     child: TextField(
-                      controller:
-                          _retypePasswordController, // Fixed: was using wrong controller
+                      controller: _retypePasswordController,
                       obscureText: true,
                       decoration: InputDecoration(
                         hintText: 'Re-type Password',
                         hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                          color: const Color(0xFF0B1E3D).withValues(alpha: .6),
                         ),
                         prefixIcon: const Icon(
                           Icons.lock,
@@ -521,7 +535,9 @@ class _SignUpPageState extends State<SignUpPage> {
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00F6FF).withOpacity(0.7),
+                            color: const Color(
+                              0xFF00F6FF,
+                            ).withValues(alpha: .7),
                             blurRadius: 11,
                             offset: const Offset(0, 0),
                           ),

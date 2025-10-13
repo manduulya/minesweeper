@@ -37,7 +37,6 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    print('🧭 Entered AnimatedSplashScreen');
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 20, 25, 51),
       body: Center(

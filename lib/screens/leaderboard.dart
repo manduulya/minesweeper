@@ -237,7 +237,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: .1),
                         blurRadius: 8,
                         offset: Offset(0, 2),
                       ),
@@ -273,7 +273,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                         margin: EdgeInsets.only(bottom: 8),
                         decoration: BoxDecoration(
                           color: isCurrentUser
-                              ? Color(0xFF0B1E3D).withOpacity(0.1)
+                              ? Color(0xFF0B1E3D).withValues(alpha: .1)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: isCurrentUser
@@ -281,7 +281,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                               : null,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
+                              color: Colors.black.withValues(alpha: .05),
                               blurRadius: 4,
                               offset: Offset(0, 1),
                             ),
@@ -297,8 +297,8 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                             height: 50,
                             decoration: BoxDecoration(
                               color: rank <= 3
-                                  ? _getRankColor(rank).withOpacity(0.1)
-                                  : Color(0xFF0B1E3D).withOpacity(0.1),
+                                  ? _getRankColor(rank).withValues(alpha: .1)
+                                  : Color(0xFF0B1E3D).withValues(alpha: .1),
                               borderRadius: BorderRadius.circular(25),
                             ),
                             child: Center(child: _getRankIcon(rank)),
@@ -341,7 +341,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                           subtitle: Text(
                             user.country,
                             style: TextStyle(
-                              color: Color(0xFF0B1E3D).withOpacity(0.7),
+                              color: Color(0xFF0B1E3D).withValues(alpha: .7),
                               fontSize: 14,
                             ),
                           ),
@@ -368,7 +368,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                   Text(
                                     'points',
                                     style: TextStyle(
-                                      color: Color(0xFF0B1E3D).withOpacity(0.6),
+                                      color: Color(
+                                        0xFF0B1E3D,
+                                      ).withValues(alpha: .6),
                                       fontSize: 12,
                                     ),
                                   ),
@@ -401,7 +403,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         Text(
           title,
           style: TextStyle(
-            color: Color(0xFF0B1E3D).withOpacity(0.7),
+            color: Color(0xFF0B1E3D).withValues(alpha: .7),
             fontSize: 12,
           ),
           textAlign: TextAlign.center,

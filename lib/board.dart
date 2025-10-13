@@ -131,10 +131,7 @@ class _GameBoardState extends State<GameBoard> {
         serverGameId = parsedGameId;
         serverConnected = true;
       });
-
-      print('Server game started with ID: $serverGameId');
     } catch (e, st) {
-      print('Failed to start server game: $e\n$st');
       setState(() {
         serverConnected = false;
       });
@@ -157,7 +154,6 @@ class _GameBoardState extends State<GameBoard> {
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
-    print("DEBUG: token from prefs = '$token'");
 
     return {
       'Content-Type': 'application/json',
@@ -208,18 +204,15 @@ class _GameBoardState extends State<GameBoard> {
       final gameData = await _apiService.loadCurrentGame();
 
       if (gameData == null) {
-        print('No active game found, starting fresh');
         return;
       }
 
       // Check for nulls before casting
       if (gameData['level'] == null) {
-        print('ERROR: level is null - cannot resume game');
         return;
       }
 
       if (gameData['game_id'] == null) {
-        print('ERROR: game_id is null - cannot resume game');
         return;
       }
 
@@ -227,15 +220,12 @@ class _GameBoardState extends State<GameBoard> {
       final levelNumber = gameData['level'] as int;
       final gameId = gameData['game_id'] as int;
 
-      print('Level number: $levelNumber');
-
       // Find the matching level data
       final levelIndex = levels.indexWhere(
         (level) => level['level'] == levelNumber,
       );
 
       if (levelIndex == -1) {
-        print('ERROR: Level $levelNumber not found in levels array');
         return;
       }
 
@@ -245,8 +235,6 @@ class _GameBoardState extends State<GameBoard> {
       final rows = levelData['rows'] as int;
       final cols = levelData['cols'] as int;
       final bombs = levelData['bombs'] as int;
-
-      print('Creating game: ${rows}x$cols with $bombs bombs');
 
       final serverHints = gameData['hints'] as int? ?? 3;
       final serverStreak = gameData['streak'] as int? ?? 0;
@@ -274,7 +262,6 @@ class _GameBoardState extends State<GameBoard> {
       // Reconstruct mine positions
       if (gameData['mine_positions'] != null) {
         final minePositions = gameData['mine_positions'] as List;
-        print('Restoring ${minePositions.length} mine positions');
         for (var pos in minePositions) {
           if (pos is List && pos.length >= 2) {
             final row = pos[0] as int;
@@ -291,7 +278,6 @@ class _GameBoardState extends State<GameBoard> {
       // Apply revealed cells
       if (gameData['revealed_cells'] != null) {
         final revealedCells = gameData['revealed_cells'] as List;
-        print('Restoring ${revealedCells.length} revealed cells');
         for (var cell in revealedCells) {
           if (cell is List && cell.length >= 2) {
             final row = cell[0] as int;
@@ -306,7 +292,6 @@ class _GameBoardState extends State<GameBoard> {
       // Apply flagged cells
       if (gameData['flagged_cells'] != null) {
         final flaggedCells = gameData['flagged_cells'] as List;
-        print('Restoring ${flaggedCells.length} flagged cells');
         for (var cell in flaggedCells) {
           if (cell is List && cell.length >= 2) {
             final row = cell[0] as int;
@@ -325,11 +310,7 @@ class _GameBoardState extends State<GameBoard> {
         serverConnected = true;
         currentLevelIndex = levelIndex;
       });
-
-      print('Game resumed successfully: Level $levelNumber');
     } catch (e, stackTrace) {
-      print('Failed to load active game: $e');
-      print('Stack trace: $stackTrace');
       setState(() {
         serverConnected = false;
       });
@@ -337,11 +318,6 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   Future<void> _updateServerGame() async {
-    print(
-      "DEBUG: entering _updateServerGame. "
-      "serverConnected=$serverConnected, "
-      "serverGameId=$serverGameId, ",
-    );
     if (!serverConnected || serverGameId == null) {
       return;
     }
@@ -351,9 +327,6 @@ class _GameBoardState extends State<GameBoard> {
         serverGameId!,
         _getRevealedCells(),
         _getFlaggedCells(),
-      );
-      print(
-        "Sending update: revealed=${_getRevealedCells()} flagged=${_getFlaggedCells()}",
       );
     } catch (e) {
       print('Failed to update server game: $e');
@@ -377,8 +350,6 @@ class _GameBoardState extends State<GameBoard> {
         hints,
         streak,
       );
-
-      print('Server game finished: ${result['message']}');
 
       // Show success message with score
       if (mounted && won) {
@@ -430,7 +401,6 @@ class _GameBoardState extends State<GameBoard> {
       });
 
       game!.checkWin();
-      print("DEBUG: handleTap calling _updateServerGame()");
       await _updateServerGame();
 
       if (game!.isGameWon && game!.isGameOver) {
@@ -565,6 +535,25 @@ class _GameBoardState extends State<GameBoard> {
     }
   }
 
+  Future<void> _handleBackToHome() async {
+    try {
+      // Optional: Finish the current game on the server before leaving
+      if (serverConnected && serverGameId != null && game != null) {
+        await _finishServerGame(false);
+      }
+
+      // Navigate back to home screen
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    } catch (e) {
+      // Still navigate back even if server update fails
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    }
+  }
+
   void _showWinDialog() {
     DialogUtils.showWinDialog(
       context: context,
@@ -634,9 +623,8 @@ class _GameBoardState extends State<GameBoard> {
       backgroundColor: const Color(0xFFFCF4E4),
       body: SafeArea(
         child: Column(
-          mainAxisSize: MainAxisSize.max,
           children: [
-            // Score and Level in top left corner
+            // Pinned top bar (Back, Level, Score)
             Padding(
               padding: const EdgeInsets.symmetric(
                 horizontal: 12.0,
@@ -644,228 +632,248 @@ class _GameBoardState extends State<GameBoard> {
               ),
               child: Row(
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Level: ${game!.level}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontFamily: 'Acsioma',
-                          fontSize: 20,
-                        ),
-                      ),
-                      Text(
-                        'Score: ${game!.score}',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontFamily: 'Acsioma',
-                          fontSize: 20,
-                        ),
-                      ),
-                    ],
+                  IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Color(0xFF0B1E3D),
+                    ),
+                    onPressed: _handleBackToHome,
+                    tooltip: 'Back to Home',
+                  ),
+                  Text(
+                    'Level: ${game!.level}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontFamily: 'Acsioma',
+                      fontSize: 20,
+                      color: const Color(0xFF0B1E3D),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    'Score: ${game!.score}',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontFamily: 'Acsioma',
+                      fontSize: 20,
+                      color: const Color(0xFF0B1E3D),
+                    ),
                   ),
                   const Spacer(),
-                  // Move connection status to top right
-                  if (serverConnected)
-                    Text(
-                      '🌐 Online',
-                      style: TextStyle(color: Colors.green, fontSize: 12),
-                    ),
                 ],
               ),
             ),
 
-            // Compact info row above the board
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12.0,
-                vertical: 4.0,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Mines count
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/bombRevealed.png',
-                        width: 24,
-                        height: 24,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${game!.remainingFlags}',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Color(0xFF1B2844),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Streak count
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/streakIcon.png',
-                        width: 24,
-                        height: 24,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${game!.winningStreak}',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Color(0xFF1B2844),
-                        ),
-                      ),
-                    ],
-                  ),
-                  // Hint count
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Image.asset(
-                        'assets/hintButton.png',
-                        width: 24,
-                        height: 24,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${game!.hintCount}',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: Color(0xFF1B2844),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-
-            // Game board - no horizontal scroll needed
+            // The rest of the content fills remaining space and is vertically centered
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                    child: _buildGameBoard(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12.0,
+                      vertical: 8.0,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Compact info row
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // Mines count
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    'assets/bombRevealed.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${game!.remainingFlags}',
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          color: const Color(0xFF1B2844),
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              // Streak count
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    'assets/streakIcon.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${game!.winningStreak}',
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          color: const Color(0xFF1B2844),
+                                        ),
+                                  ),
+                                ],
+                              ),
+                              // Hint count
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Image.asset(
+                                    'assets/hintButton.png',
+                                    width: 24,
+                                    height: 24,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    '${game!.hintCount}',
+                                    style: Theme.of(context).textTheme.bodyLarge
+                                        ?.copyWith(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 20,
+                                          color: const Color(0xFF1B2844),
+                                        ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Game board
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          child: _buildGameBoard(),
+                        ),
+
+                        // Action buttons
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 12.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              // Hint Button
+                              ClickButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed:
+                                    (game!.hintCount > 0 && !game!.isGameOver)
+                                    ? () async {
+                                        setState(() {
+                                          isHintMode = true;
+                                        });
+                                      }
+                                    : () async {},
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        (game!.hintCount > 0 &&
+                                            !game!.isGameOver)
+                                        ? Colors.blue.withValues(alpha: 0.1)
+                                        : Colors.grey.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color:
+                                          (game!.hintCount > 0 &&
+                                              !game!.isGameOver)
+                                          ? Colors.blue
+                                          : Colors.grey,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        'assets/hintButton.png',
+                                        width: 32,
+                                        height: 32,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Use Hint',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color:
+                                              (game!.hintCount > 0 &&
+                                                  !game!.isGameOver)
+                                              ? Colors.blue
+                                              : Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Restart Button
+                              ClickButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  elevation: 0,
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                onPressed: _restartGame,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: Colors.orange),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Image.asset(
+                                        'assets/restartButton.png',
+                                        width: 32,
+                                        height: 32,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Restart',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
-
-            // Compact action buttons below the board
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  // Hint Button (tap to use)
-                  ClickButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      elevation: 0,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: (game!.hintCount > 0 && !game!.isGameOver)
-                        ? () async {
-                            setState(() {
-                              isHintMode = true;
-                            });
-                          }
-                        : () async {},
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: (game!.hintCount > 0 && !game!.isGameOver)
-                            ? Colors.blue.withOpacity(0.1)
-                            : Colors.grey.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: (game!.hintCount > 0 && !game!.isGameOver)
-                              ? Colors.blue
-                              : Colors.grey,
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset(
-                            'assets/hintButton.png',
-                            width: 32,
-                            height: 32,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Use Hint',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: (game!.hintCount > 0 && !game!.isGameOver)
-                                  ? Colors.blue
-                                  : Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Restart Button
-                  ClickButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      elevation: 0,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: _restartGame,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.orange),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset(
-                            'assets/restartButton.png',
-                            width: 32,
-                            height: 32,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Restart',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.orange,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ),
           ],

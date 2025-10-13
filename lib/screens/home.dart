@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_experiment/click_button_widget.dart';
+import 'package:country_flags/country_flags.dart';
 import '../board.dart';
 import 'leaderboard.dart';
 import 'settings.dart';
@@ -84,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showProfileDialog(BuildContext context) {
     if (userProfile == null) return;
-
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -93,9 +93,9 @@ class _HomeScreenState extends State<HomeScreen> {
             Text('Profile'),
             const Spacer(),
             if (userProfile!['country_flag'] != null)
-              Text(
-                _getFlagEmoji(userProfile!['country_flag']),
-                style: TextStyle(fontSize: 24),
+              CountryFlag.fromCountryCode(
+                userProfile!['country_flag'].toString().toUpperCase(),
+                theme: const ImageTheme(height: 24, width: 32),
               ),
           ],
         ),
@@ -119,58 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _getFlagEmoji(String flagCode) {
-    const flagMap = {
-      'international': '🌍',
-      'us': '🇺🇸',
-      'uk': '🇬🇧',
-      'ca': '🇨🇦',
-      'au': '🇦🇺',
-      'de': '🇩🇪',
-      'fr': '🇫🇷',
-      'it': '🇮🇹',
-      'es': '🇪🇸',
-      'jp': '🇯🇵',
-      'kr': '🇰🇷',
-      'cn': '🇨🇳',
-      'in': '🇮🇳',
-      'br': '🇧🇷',
-      'mx': '🇲🇽',
-      'ru': '🇷🇺',
-      'za': '🇿🇦',
-      'eg': '🇪🇬',
-      'ng': '🇳🇬',
-      'ar': '🇦🇷',
-      'cl': '🇨🇱',
-      'pe': '🇵🇪',
-      'se': '🇸🇪',
-      'no': '🇳🇴',
-      'dk': '🇩🇰',
-      'fi': '🇫🇮',
-      'nl': '🇳🇱',
-      'be': '🇧🇪',
-      'ch': '🇨🇭',
-      'at': '🇦🇹',
-      'pt': '🇵🇹',
-      'ie': '🇮🇪',
-      'pl': '🇵🇱',
-      'cz': '🇨🇿',
-      'hu': '🇭🇺',
-      'gr': '🇬🇷',
-      'tr': '🇹🇷',
-      'il': '🇮🇱',
-      'ae': '🇦🇪',
-      'sa': '🇸🇦',
-      'th': '🇹🇭',
-      'vn': '🇻🇳',
-      'id': '🇮🇩',
-      'my': '🇲🇾',
-      'sg': '🇸🇬',
-      'ph': '🇵🇭',
-    };
-    return flagMap[flagCode] ?? '🌍';
-  }
-
   String _formatDate(String? dateStr) {
     if (dateStr == null) return 'Unknown';
     try {
@@ -183,8 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('🧭 Entered HomeScreen');
-
     return Scaffold(
       backgroundColor: const Color(0xFFFCF4E4),
       appBar: AppBar(
@@ -211,9 +157,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                     if (userProfile?['country_flag'] != null) ...[
                       SizedBox(width: 8),
-                      Text(
-                        _getFlagEmoji(userProfile!['country_flag']),
-                        style: TextStyle(fontSize: 18),
+                      CountryFlag.fromCountryCode(
+                        userProfile!['country_flag'].toString().toUpperCase(),
+                        theme: const ImageTheme(height: 20, width: 28),
                       ),
                     ],
                   ],
@@ -222,26 +168,22 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           // Profile button
           if (!_isLoading)
+            // Logout button
             IconButton(
-              icon: Icon(Icons.person, color: Color(0xFF0B1E3D)),
-              onPressed: () => _showProfileDialog(context),
-            ),
-          // Logout button
-          IconButton(
-            icon: _isLoggingOut
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF0B1E3D),
+              icon: _isLoggingOut
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF0B1E3D),
+                        ),
                       ),
-                    ),
-                  )
-                : Icon(Icons.logout, color: Color(0xFF0B1E3D)),
-            onPressed: _isLoggingOut ? null : _handleLogout,
-          ),
+                    )
+                  : Icon(Icons.logout, color: Color(0xFF0B1E3D)),
+              onPressed: _isLoggingOut ? null : _handleLogout,
+            ),
         ],
       ),
       body: SafeArea(
@@ -277,15 +219,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             )
                           : Column(
                               children: [
-                                // Text(
-                                //   'Player Statistics',
-                                //   style: TextStyle(
-                                //     color: Color(0xFF0B1E3D),
-                                //     fontSize: 18,
-                                //     fontWeight: FontWeight.bold,
-                                //   ),
-                                // ),
-                                // const SizedBox(height: 16),
                                 Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceAround,
@@ -313,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 40),
 
                   // Play button
-                  ClickButton(
+                  ElevatedButton(
                     onPressed: _isLoading
                         ? null
                         : () async {
@@ -338,18 +271,20 @@ class _HomeScreenState extends State<HomeScreen> {
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00F6FF).withOpacity(0.7),
+                            color: const Color(
+                              0xFF00F6FF,
+                            ).withValues(alpha: .7),
                             blurRadius: 11,
                             offset: const Offset(0, 0),
                           ),
                         ],
                         color: _isLoading
-                            ? Color(0xFF0B1E3D).withOpacity(0.6)
+                            ? Color(0xFF0B1E3D).withValues(alpha: .6)
                             : Color(0xFF0B1E3D),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _isLoading
-                              ? Color(0xFFFFA200).withOpacity(0.6)
+                              ? Color(0xFFFFA200).withValues(alpha: .6)
                               : Color(0xFFFFA200),
                           width: 3,
                         ),
@@ -367,7 +302,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   // Additional buttons
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -448,7 +382,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Color(0xFF0B1E3D).withOpacity(0.7),
+            color: Color(0xFF0B1E3D).withValues(alpha: .7),
             fontSize: 11,
           ),
           textAlign: TextAlign.center,
@@ -477,8 +411,8 @@ class _HomeScreenState extends State<HomeScreen> {
           borderRadius: BorderRadius.circular(8),
           side: BorderSide(
             color: onPressed != null
-                ? Color(0xFF0B1E3D).withOpacity(0.3)
-                : Colors.grey.withOpacity(0.3),
+                ? Color(0xFF0B1E3D).withValues(alpha: .3)
+                : Colors.grey.withValues(alpha: .3),
           ),
         ),
         padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),

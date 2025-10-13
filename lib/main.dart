@@ -98,12 +98,9 @@ class _SplashToAuthWrapperState extends State<SplashToAuthWrapper> {
   void initState() {
     super.initState();
 
-    print('🚀 SplashToAuthWrapper: Starting...');
-
     // Initialize auth state when app starts
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
-      print('🚀 SplashToAuthWrapper: Initializing auth...');
       final authService = context.read<AuthService>();
 
       final settingsService = context.read<SettingsService>();
@@ -117,8 +114,6 @@ class _SplashToAuthWrapperState extends State<SplashToAuthWrapper> {
   }
 
   void _onSplashComplete() {
-    print('🚀 SplashToAuthWrapper: Splash completed!');
-
     setState(() {
       _splashComplete = true;
     });
@@ -126,25 +121,13 @@ class _SplashToAuthWrapperState extends State<SplashToAuthWrapper> {
 
   @override
   Widget build(BuildContext context) {
-    print(
-      '🚀 SplashToAuthWrapper: Building... splashComplete=$_splashComplete',
-    );
-
     if (!_splashComplete) {
       return AnimatedSplashScreen(onSplashComplete: _onSplashComplete);
     }
 
     return Consumer<AuthService>(
       builder: (context, authService, child) {
-        print('🚀 Consumer: isLoggedIn=${authService.isLoggedIn}');
-
-        // Show appropriate screen based on auth status
-
         final isLoggedIn = authService.isLoggedIn == true;
-
-        print(
-          '🚀 Consumer: Navigating to ${isLoggedIn ? 'HomeScreen' : 'LandingPage'}',
-        );
 
         return isLoggedIn ? const HomeScreen() : const LandingPage();
       },

@@ -232,7 +232,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: authService.username ?? 'Not set',
                 onTap: () => _showUsernameDialog(),
               ),
-              Divider(color: Color(0xFF0B1E3D).withOpacity(0.1)),
+              Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
               // Country Setting
               _buildSettingsTile(
                 icon: Icons.flag,
@@ -246,7 +246,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 onTap: () => _showCountryDialog(),
               ),
-              Divider(color: Color(0xFF0B1E3D).withOpacity(0.1)),
+              Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
               // Change Password
               _buildSettingsTile(
                 icon: Icons.lock,
@@ -274,7 +274,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   activeColor: Color(0xFF0B1E3D),
                 ),
               ),
-              Divider(color: Color(0xFF0B1E3D).withOpacity(0.1)),
+              Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
               // Background Music Toggle
               _buildSettingsTile(
                 icon: Icons.music_note,
@@ -291,40 +291,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ]),
 
             SizedBox(height: 24),
-
-            // // Game Settings Section
-            // _buildSectionHeader('Game Settings'),
-            // _buildSettingsCard([
-            //   // Vibration Toggle
-            //   _buildSettingsTile(
-            //     icon: Icons.vibration,
-            //     title: 'Vibration',
-            //     subtitle: 'Haptic feedback',
-            //     trailing: Switch(
-            //       value: settingsService.vibrationEnabled,
-            //       onChanged: (value) {
-            //         settingsService.setVibration(value);
-            //       },
-            //       activeColor: Color(0xFF0B1E3D),
-            //     ),
-            //   ),
-            //   Divider(color: Color(0xFF0B1E3D).withOpacity(0.1)),
-            //   // Auto-save Toggle
-            //   _buildSettingsTile(
-            //     icon: Icons.save,
-            //     title: 'Auto-save Progress',
-            //     subtitle: 'Automatically save game progress',
-            //     trailing: Switch(
-            //       value: settingsService.autoSaveEnabled,
-            //       onChanged: (value) {
-            //         settingsService.setAutoSave(value);
-            //       },
-            //       activeColor: Color(0xFF0B1E3D),
-            //     ),
-            //   ),
-            // ]),
-
-            // SizedBox(height: 24),
 
             // Account Actions Section
             _buildSectionHeader('Account'),
@@ -367,7 +333,7 @@ class _SettingsPageState extends State<SettingsPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: .05),
             blurRadius: 8,
             offset: Offset(0, 2),
           ),
@@ -389,7 +355,7 @@ class _SettingsPageState extends State<SettingsPage> {
       leading: Container(
         padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: Color(0xFF0B1E3D).withOpacity(0.1),
+          color: Color(0xFF0B1E3D).withValues(alpha: .1),
           borderRadius: BorderRadius.circular(8),
         ),
         child: Icon(icon, color: titleColor ?? Color(0xFF0B1E3D), size: 20),
@@ -405,7 +371,7 @@ class _SettingsPageState extends State<SettingsPage> {
       subtitle: Text(
         subtitle,
         style: TextStyle(
-          color: Color(0xFF0B1E3D).withOpacity(0.6),
+          color: Color(0xFF0B1E3D).withValues(alpha: .6),
           fontSize: 14,
         ),
       ),
@@ -414,7 +380,7 @@ class _SettingsPageState extends State<SettingsPage> {
           (onTap != null
               ? Icon(
                   Icons.arrow_forward_ios,
-                  color: Color(0xFF0B1E3D).withOpacity(0.3),
+                  color: Color(0xFF0B1E3D).withValues(alpha: .3),
                   size: 16,
                 )
               : null),
@@ -561,7 +527,7 @@ class _SettingsPageState extends State<SettingsPage> {
               Navigator.pop(context);
               final authService = context.read<AuthService>();
               await authService.logout();
-              Navigator.pop(context); // Go back to previous screen
+              Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             child: Text('Logout', style: TextStyle(color: Colors.white)),

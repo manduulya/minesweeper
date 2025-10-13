@@ -45,9 +45,6 @@ class ErrorHandler {
     }
 
     showError(context, message);
-
-    // Log error for debugging
-    print('Error handled: $error');
   }
 
   // Handle specific API errors

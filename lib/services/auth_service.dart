@@ -34,7 +34,6 @@ class AuthService extends ChangeNotifier {
 
   // Initialize auth state from stored preferences
   Future<void> initializeAuth() async {
-    print('🔍 AuthService: Starting initialization...');
     try {
       final prefs = await SharedPreferences.getInstance();
       _isLoggedIn = prefs.getBool('isLoggedIn') ?? false;
@@ -42,14 +41,8 @@ class AuthService extends ChangeNotifier {
       _email = prefs.getString('email');
       _userId = prefs.getString('userId');
 
-      print('🔍 AuthService: Login status = $_isLoggedIn');
-      print('🔍 AuthService: Username = $_username');
-      print('🔍 AuthService: Email = $_email');
-
       notifyListeners();
-      print('🔍 AuthService: Initialization complete!');
     } catch (e) {
-      print('❌ AuthService: Error during initialization: $e');
       _isLoggedIn = false;
       notifyListeners();
     }
@@ -167,12 +160,10 @@ class AuthService extends ChangeNotifier {
         await prefs.setString('username', newUsername);
 
         notifyListeners();
-        print('✅ Username updated to: $newUsername');
         return true;
       }
       return false;
     } catch (e) {
-      print('❌ Error updating username: $e');
       return false;
     }
   }
@@ -186,19 +177,11 @@ class AuthService extends ChangeNotifier {
       // TODO: Replace with actual API call to verify current password
       await Future.delayed(Duration(seconds: 1)); // Simulate API delay
 
-      // For demo purposes, assume current password is correct if it's not empty
       if (currentPassword.isNotEmpty && newPassword.length >= 6) {
-        // In real implementation, you would:
-        // 1. Send current password to server for verification
-        // 2. If verified, update password on server
-        // 3. Return success/failure based on server response
-
-        print('✅ Password updated successfully');
         return true;
       }
       return false;
     } catch (e) {
-      print('❌ Error updating password: $e');
       return false;
     }
   }

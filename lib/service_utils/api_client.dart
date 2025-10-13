@@ -8,7 +8,6 @@ class ApiClient {
   static Future<http.Response> get(String endpoint) async {
     final token = await _getToken();
     final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
-    print('HERE IS THE URI: $uri');
     return http.get(uri, headers: _buildHeaders(token));
   }
 
