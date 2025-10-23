@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/api_service.dart';
+import '../service_utils/country_data.dart'; // Import your country data utility
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -12,7 +14,8 @@ class LeaderboardPage extends StatefulWidget {
 class _LeaderboardPageState extends State<LeaderboardPage> {
   List<LeaderboardUser> _leaderboardData = [];
   bool _isLoading = true;
-  final String _currentUserCountry = 'United States';
+  String? _errorMessage;
+  final ApiService _apiService = ApiService();
 
   @override
   void initState() {
@@ -20,128 +23,99 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     _loadLeaderboardData();
   }
 
-  // Simulate loading leaderboard data (replace with actual API call)
   Future<void> _loadLeaderboardData() async {
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
-    // Simulate network delay
-    await Future.delayed(Duration(seconds: 1));
+    try {
+      final data = await _apiService.getLeaderboard(limit: 50);
 
-    // Sample leaderboard data (replace with actual data from your backend)
-    final sampleData = [
+      setState(() {
+        _leaderboardData = data.map((item) {
+          return LeaderboardUser(
+            username: item['username'] as String,
+            totalScore: item['total_score'] as int,
+            countryFlag: item['country_flag'] as String, // Store the flag code
+          );
+        }).toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load leaderboard: $e';
+        _isLoading = false;
+        // Use sample data as fallback for demo purposes
+        _leaderboardData = _getSampleData();
+      });
+    }
+  }
+
+  // Sample data as fallback
+  List<LeaderboardUser> _getSampleData() {
+    return [
       LeaderboardUser(
         username: 'MineExpert',
         totalScore: 125400,
-        country: 'United States',
+        countryFlag: 'us',
       ),
       LeaderboardUser(
         username: 'BombDefuser',
         totalScore: 118900,
-        country: 'Canada',
+        countryFlag: 'ca',
       ),
       LeaderboardUser(
         username: 'SafeClicker',
         totalScore: 112300,
-        country: 'United Kingdom',
+        countryFlag: 'uk',
       ),
       LeaderboardUser(
         username: 'MineMaster',
         totalScore: 108700,
-        country: 'Germany',
+        countryFlag: 'de',
       ),
       LeaderboardUser(
         username: 'FieldExplorer',
         totalScore: 104200,
-        country: 'France',
-      ),
-      LeaderboardUser(
-        username: 'TileHunter',
-        totalScore: 99800,
-        country: 'Japan',
-      ),
-      LeaderboardUser(
-        username: 'BoomAvoider',
-        totalScore: 95400,
-        country: 'Australia',
-      ),
-      LeaderboardUser(
-        username: 'NumberCruncher',
-        totalScore: 91200,
-        country: 'Netherlands',
-      ),
-      LeaderboardUser(
-        username: 'PatternSeeker',
-        totalScore: 87600,
-        country: 'Sweden',
-      ),
-      LeaderboardUser(
-        username: 'LogicMaster',
-        totalScore: 84300,
-        country: 'South Korea',
-      ),
-      LeaderboardUser(
-        username: 'QuickSolver',
-        totalScore: 80900,
-        country: 'Brazil',
-      ),
-      LeaderboardUser(
-        username: 'ClearPath',
-        totalScore: 77500,
-        country: 'Italy',
-      ),
-      LeaderboardUser(
-        username: 'SafeZone',
-        totalScore: 74100,
-        country: 'Spain',
-      ),
-      LeaderboardUser(
-        username: 'MineDetector',
-        totalScore: 70800,
-        country: 'Russia',
-      ),
-      LeaderboardUser(
-        username: 'TileExpert',
-        totalScore: 67200,
-        country: 'Mexico',
+        countryFlag: 'fr',
       ),
     ];
-
-    setState(() {
-      _leaderboardData = sampleData;
-      _isLoading = false;
-    });
   }
 
-  // Get country flag emoji (simplified version)
-  String _getCountryFlag(String country) {
-    final flagMap = {
-      'United States': '🇺🇸',
-      'Canada': '🇨🇦',
-      'United Kingdom': '🇬🇧',
-      'Germany': '🇩🇪',
-      'France': '🇫🇷',
-      'Japan': '🇯🇵',
-      'Australia': '🇦🇺',
-      'Netherlands': '🇳🇱',
-      'Sweden': '🇸🇪',
-      'South Korea': '🇰🇷',
-      'Brazil': '🇧🇷',
-      'Italy': '🇮🇹',
-      'Spain': '🇪🇸',
-      'Russia': '🇷🇺',
-      'Mexico': '🇲🇽',
-      'China': '🇨🇳',
-      'India': '🇮🇳',
-      'Norway': '🇳🇴',
-      'Denmark': '🇩🇰',
-      'Switzerland': '🇨🇭',
-    };
-    return flagMap[country] ?? '🌍';
+  // Get country name from flag code using your country_data.dart
+  String _getCountryName(String flagCode) {
+    final country = CountryHelper.getCountryByFlagCode(flagCode);
+    return country?.name ?? 'International';
   }
 
-  // Get rank color based on position
+  // Get country flag widget from flag code
+  // Note: Since you're using the country_flags package, you'll use CountryFlag widget
+  // For the leaderboard list item, we'll return the flag code to use with CountryFlag widget
+  String _getCountryFlagCode(String flagCode) {
+    final country = CountryHelper.getCountryByFlagCode(flagCode);
+    return country?.flagCode ?? 'international';
+  }
+
+  // Convert country code to flag emoji
+  String _getFlagEmoji(String countryCode) {
+    if (countryCode == 'international') return '🌍';
+
+    // Convert ISO country code to flag emoji
+    // Each flag emoji is composed of two regional indicator symbols
+    // A = 🇦 (U+1F1E6), B = 🇧 (U+1F1E7), etc.
+    final code = countryCode.toUpperCase();
+    if (code.length != 2) return '🌍';
+
+    final firstChar = code.codeUnitAt(0);
+    final secondChar = code.codeUnitAt(1);
+
+    // Regional indicator symbols start at U+1F1E6 (🇦)
+    // A is 65 in ASCII, so we calculate: 0x1F1E6 + (char - 65)
+    return String.fromCharCode(0x1F1E6 + (firstChar - 65)) +
+        String.fromCharCode(0x1F1E6 + (secondChar - 65));
+  }
+
   Color _getRankColor(int rank) {
     switch (rank) {
       case 1:
@@ -155,7 +129,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     }
   }
 
-  // Get rank icon for top 3
   Widget _getRankIcon(int rank) {
     switch (rank) {
       case 1:
@@ -228,6 +201,29 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
             )
           : Column(
               children: [
+                // Error message if any
+                if (_errorMessage != null)
+                  Container(
+                    margin: EdgeInsets.all(16),
+                    padding: EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade100,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.warning, color: Colors.orange.shade800),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Using sample data. ${_errorMessage}',
+                            style: TextStyle(color: Colors.orange.shade900),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
                 // Header stats
                 Container(
                   margin: EdgeInsets.all(16),
@@ -237,7 +233,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: .1),
                         blurRadius: 8,
                         offset: Offset(0, 2),
                       ),
@@ -261,125 +257,158 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
                 // Leaderboard list
                 Expanded(
-                  child: ListView.builder(
-                    padding: EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _leaderboardData.length,
-                    itemBuilder: (context, index) {
-                      final user = _leaderboardData[index];
-                      final rank = index + 1;
-                      final isCurrentUser = user.username == currentUsername;
-
-                      return Container(
-                        margin: EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: isCurrentUser
-                              ? Color(0xFF0B1E3D).withOpacity(0.1)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: isCurrentUser
-                              ? Border.all(color: Color(0xFF0B1E3D), width: 2)
-                              : null,
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 4,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
-                        ),
-                        child: ListTile(
-                          contentPadding: EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          leading: Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: rank <= 3
-                                  ? _getRankColor(rank).withOpacity(0.1)
-                                  : Color(0xFF0B1E3D).withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: Center(child: _getRankIcon(rank)),
-                          ),
-                          title: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  user.username,
-                                  style: TextStyle(
-                                    color: Color(0xFF0B1E3D),
-                                    fontWeight: isCurrentUser
-                                        ? FontWeight.bold
-                                        : FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                              ),
-                              if (isCurrentUser)
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFF0B1E3D),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    'YOU',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          subtitle: Text(
-                            user.country,
+                  child: _leaderboardData.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No leaderboard data available',
                             style: TextStyle(
-                              color: Color(0xFF0B1E3D).withOpacity(0.7),
-                              fontSize: 14,
+                              color: Color(0xFF0B1E3D),
+                              fontSize: 16,
                             ),
                           ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _getCountryFlag(user.country),
-                                style: TextStyle(fontSize: 24),
-                              ),
-                              SizedBox(width: 12),
-                              Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    _formatScore(user.totalScore),
-                                    style: TextStyle(
-                                      color: Color(0xFF0B1E3D),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                    ),
-                                  ),
-                                  Text(
-                                    'points',
-                                    style: TextStyle(
-                                      color: Color(0xFF0B1E3D).withOpacity(0.6),
-                                      fontSize: 12,
-                                    ),
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          itemCount: _leaderboardData.length,
+                          itemBuilder: (context, index) {
+                            final user = _leaderboardData[index];
+                            final rank = index + 1;
+                            final isCurrentUser =
+                                user.username == currentUsername;
+
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 8),
+                              decoration: BoxDecoration(
+                                color: isCurrentUser
+                                    ? Color(0xFF0B1E3D).withValues(alpha: .1)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                border: isCurrentUser
+                                    ? Border.all(
+                                        color: Color(0xFF0B1E3D),
+                                        width: 2,
+                                      )
+                                    : null,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: .05),
+                                    blurRadius: 4,
+                                    offset: Offset(0, 1),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                              child: ListTile(
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 8,
+                                ),
+                                leading: Container(
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: rank <= 3
+                                        ? _getRankColor(
+                                            rank,
+                                          ).withValues(alpha: .1)
+                                        : Color(
+                                            0xFF0B1E3D,
+                                          ).withValues(alpha: .1),
+                                    borderRadius: BorderRadius.circular(25),
+                                  ),
+                                  child: Center(child: _getRankIcon(rank)),
+                                ),
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        user.username,
+                                        style: TextStyle(
+                                          color: Color(0xFF0B1E3D),
+                                          fontWeight: isCurrentUser
+                                              ? FontWeight.bold
+                                              : FontWeight.w600,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isCurrentUser)
+                                      Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 2,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Color(0xFF0B1E3D),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'YOU',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                subtitle: Text(
+                                  _getCountryName(user.countryFlag),
+                                  style: TextStyle(
+                                    color: Color(
+                                      0xFF0B1E3D,
+                                    ).withValues(alpha: .7),
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    // Display country flag emoji
+                                    // If you want to use the country_flags package widget instead:
+                                    // CountryFlag.fromCountryCode(
+                                    //   user.countryFlag,
+                                    //   height: 24,
+                                    //   width: 32,
+                                    // ),
+                                    Text(
+                                      _getFlagEmoji(user.countryFlag),
+                                      style: TextStyle(fontSize: 24),
+                                    ),
+                                    SizedBox(width: 12),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          _formatScore(user.totalScore),
+                                          style: TextStyle(
+                                            color: Color(0xFF0B1E3D),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        Text(
+                                          'points',
+                                          style: TextStyle(
+                                            color: Color(
+                                              0xFF0B1E3D,
+                                            ).withValues(alpha: .6),
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
                 ),
               ],
             ),
@@ -401,7 +430,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
         Text(
           title,
           style: TextStyle(
-            color: Color(0xFF0B1E3D).withOpacity(0.7),
+            color: Color(0xFF0B1E3D).withValues(alpha: .7),
             fontSize: 12,
           ),
           textAlign: TextAlign.center,
@@ -435,11 +464,11 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 class LeaderboardUser {
   final String username;
   final int totalScore;
-  final String country;
+  final String countryFlag; // Store the flag code (e.g., 'us', 'uk', 'ca')
 
   LeaderboardUser({
     required this.username,
     required this.totalScore,
-    required this.country,
+    required this.countryFlag,
   });
 }

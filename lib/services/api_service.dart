@@ -1,4 +1,3 @@
-// lib/services/api_service.dart
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,20 +5,9 @@ import '../service_utils/constants.dart';
 import '../service_utils/api_client.dart';
 
 class ApiService {
-  // Future<String?> _getToken() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   return prefs.getString(ApiConstants.tokenKey);
-  // }
-
-  // Future<void> _saveToken(String token) async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   await prefs.setString(ApiConstants.tokenKey, token);
-  // }
-
   Future<void> _saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
-    print("DEBUG: Saved token = $token");
   }
 
   Future<void> clearToken() async {
@@ -31,8 +19,6 @@ class ApiService {
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token');
-
-    print("DEBUG: token from prefs = $token");
 
     return {
       'Content-Type': 'application/json',
@@ -169,7 +155,6 @@ class ApiService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body) as Map<String, dynamic>;
     } else if (response.statusCode == 404) {
-      print("DEBUG: No saved game found, starting new one.");
       return null;
     } else {
       throw Exception('Failed to load current game: ${response.statusCode}');
@@ -183,7 +168,6 @@ class ApiService {
     List<List<int>> flaggedCells,
   ) async {
     final headers = await _getHeaders();
-    print("DEBUG: updateGame headers = $headers");
     final response = await _makeRequest(
       () async => http.put(
         Uri.parse('${ApiConstants.baseUrl}/game/update'),
@@ -194,12 +178,6 @@ class ApiService {
           'flagged_cells': flaggedCells,
         }),
       ),
-    );
-    print(
-      "DEBUG: updateGame request body: ${jsonEncode({'game_id': gameId, 'revealed_cells': revealedCells, 'flagged_cells': flaggedCells})}",
-    );
-    print(
-      "DEBUG: updateGame response: ${response.statusCode} ${response.body}",
     );
 
     if (response.statusCode == 200) {
@@ -258,17 +236,13 @@ class ApiService {
     }
   }
 
-  // Get leaderboard
-  Future<List<dynamic>> getLeaderboard({
-    int? gridWidth,
-    int? gridHeight,
-    int? mineCount,
-    int limit = 10,
+  Future<List<Map<String, dynamic>>> getLeaderboard({
+    int? levelId,
+    int limit = 50,
   }) async {
     String url = '${ApiConstants.baseUrl}/leaderboard?limit=$limit';
-    if (gridWidth != null && gridHeight != null && mineCount != null) {
-      url +=
-          '&grid_width=$gridWidth&grid_height=$gridHeight&mine_count=$mineCount';
+    if (levelId != null) {
+      url += '&level_id=$levelId';
     }
 
     final response = await _makeRequest(
@@ -276,9 +250,10 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => item as Map<String, dynamic>).toList();
     } else {
-      throw response;
+      throw Exception('Failed to load leaderboard: ${response.statusCode}');
     }
   }
 
@@ -291,13 +266,8 @@ class ApiService {
       ),
     );
 
-    print('DEBUG: getUserStats status: ${response.statusCode}');
-    print('DEBUG: getUserStats body: ${response.body}');
-
     if (response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
-      print('DEBUG: getUserStats decoded type: ${decoded.runtimeType}');
-      print('DEBUG: getUserStats decoded value: $decoded');
       return decoded as Map<String, dynamic>;
     } else {
       throw response;

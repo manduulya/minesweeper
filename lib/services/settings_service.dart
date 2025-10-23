@@ -31,9 +31,6 @@ class SettingsService extends ChangeNotifier {
       _autoSaveEnabled = prefs.getBool('autoSaveEnabled') ?? true;
       _userCountry = prefs.getString('userCountry');
 
-      print(
-        '🎵 Settings initialized: Sound=$_soundEffectsEnabled, Music=$_backgroundMusicEnabled',
-      );
       notifyListeners();
     } catch (e) {
       print('❌ Error initializing settings: $e');
@@ -45,7 +42,6 @@ class SettingsService extends ChangeNotifier {
     _soundEffectsEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('soundEffectsEnabled', enabled);
-    print('🔊 Sound effects ${enabled ? 'enabled' : 'disabled'}');
     notifyListeners();
   }
 
@@ -54,7 +50,6 @@ class SettingsService extends ChangeNotifier {
     _backgroundMusicEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('backgroundMusicEnabled', enabled);
-    print('🎵 Background music ${enabled ? 'enabled' : 'disabled'}');
     notifyListeners();
   }
 
@@ -63,7 +58,6 @@ class SettingsService extends ChangeNotifier {
     _vibrationEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('vibrationEnabled', enabled);
-    print('📳 Vibration ${enabled ? 'enabled' : 'disabled'}');
     notifyListeners();
   }
 
@@ -72,7 +66,6 @@ class SettingsService extends ChangeNotifier {
     _autoSaveEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('autoSaveEnabled', enabled);
-    print('💾 Auto-save ${enabled ? 'enabled' : 'disabled'}');
     notifyListeners();
   }
 
@@ -81,7 +74,6 @@ class SettingsService extends ChangeNotifier {
     _userCountry = country;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('userCountry', country);
-    print('🌍 User country updated to: $country');
     notifyListeners();
   }
 
@@ -127,7 +119,6 @@ class SettingsService extends ChangeNotifier {
     await prefs.remove('autoSaveEnabled');
     await prefs.remove('userCountry');
 
-    print('🔄 Settings reset to defaults');
     notifyListeners();
   }
 }

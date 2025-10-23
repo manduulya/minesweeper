@@ -41,14 +41,13 @@ class DialogUtils {
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontFamily: 'Acsioma',
                       fontSize: 65,
-                      fontWeight: FontWeight.bold,
                       color: Color(0xFFffdd00),
                       // Adjust color to contrast with your background
                       shadows: [
                         Shadow(
                           offset: Offset(2, 2),
                           blurRadius: 4,
-                          color: Colors.black.withOpacity(0.7),
+                          color: Colors.black.withValues(alpha: .7),
                         ),
                       ],
                     ),
@@ -62,8 +61,8 @@ class DialogUtils {
 
                   // Level and score info
                   Container(
-                    width: 400,
-                    height: 600,
+                    width: 350,
+                    height: 500,
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [Color(0xFF294e71), Color(0xFF102a43)],
@@ -73,11 +72,11 @@ class DialogUtils {
                       border: Border(
                         top: BorderSide(
                           color: Color(0xFFffa200),
-                          width: 50,
+                          width: 45,
                         ), // Thicker top border
-                        left: BorderSide(color: Color(0xFFffa200), width: 25),
-                        right: BorderSide(color: Color(0xFFffa200), width: 25),
-                        bottom: BorderSide(color: Color(0xFFffa200), width: 25),
+                        left: BorderSide(color: Color(0xFFffa200), width: 20),
+                        right: BorderSide(color: Color(0xFFffa200), width: 20),
+                        bottom: BorderSide(color: Color(0xFFffa200), width: 20),
                       ),
                       borderRadius: BorderRadius.circular(10.0),
                     ),
@@ -91,12 +90,12 @@ class DialogUtils {
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 fontFamily: 'Topaz',
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 28,
                                 color: Colors.white,
                               ),
                           textAlign: TextAlign.center,
                         ),
+                        const SizedBox(height: 5),
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
@@ -110,7 +109,7 @@ class DialogUtils {
                               BoxShadow(
                                 offset: Offset(0, 4),
                                 blurRadius: 8,
-                                color: Colors.black.withOpacity(0.3),
+                                color: Colors.black.withValues(alpha: .3),
                               ),
                             ],
                           ),
@@ -123,7 +122,7 @@ class DialogUtils {
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(
                                       fontFamily: 'Acsioma',
-                                      fontSize: 24,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF102a43),
                                     ),
@@ -134,7 +133,7 @@ class DialogUtils {
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(
                                       fontFamily: 'Acsioma',
-                                      fontSize: 24,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF102a43),
                                     ),
@@ -145,7 +144,7 @@ class DialogUtils {
                                 style: Theme.of(context).textTheme.bodyLarge
                                     ?.copyWith(
                                       fontFamily: 'Acsioma',
-                                      fontSize: 24,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.w600,
                                       color: Color(0xFF102a43),
                                     ),
@@ -171,32 +170,49 @@ class DialogUtils {
                         const SizedBox(height: 40),
                         Padding(
                           padding: const EdgeInsets.only(bottom: 32.0),
-                          child: ClickButton(
+                          child: ElevatedButton(
                             onPressed: () async {
                               Navigator.of(context).pop();
                               onNextLevel();
                               showLevelOverlay(context, game.level + 1);
                             },
                             style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 48,
-                                vertical: 16,
-                              ),
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(24),
                               ),
-                              elevation: 8,
-                              shadowColor: Colors.black.withOpacity(0.3),
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
                             ),
-                            child: Text(
-                              'Next Level',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 36,
+                                vertical: 12,
+                              ),
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF00F6FF,
+                                    ).withValues(alpha: .7),
+                                    blurRadius: 11,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                ],
+                                color: const Color(0xFF0B1E3D),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFFFA200),
+                                  width: 3,
+                                ),
+                              ),
+                              child: Text(
+                                'NEXT LEVEL',
+                                style: TextStyle(
+                                  color: Color(0xFFFFDD00),
+                                  fontFamily: 'Acsioma',
+                                  fontSize: 20,
+                                ),
                               ),
                             ),
                           ),
@@ -228,15 +244,19 @@ class DialogUtils {
         child: Material(
           color: Colors.transparent,
           child: Container(
-            width: 400,
+            width: 350,
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: Color(0xFF1B2844),
+              gradient: RadialGradient(
+                colors: [Color(0xFF294e71), Color(0xFF102a43)],
+                center: Alignment.center,
+                radius: 0.8,
+              ),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Color(0xFFffa200), width: 25),
+              border: Border.all(color: Color(0xFFffa200), width: 20),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: .3),
                   blurRadius: 16,
                   offset: Offset(0, 8),
                 ),
@@ -250,36 +270,55 @@ class DialogUtils {
                   'Game Over \nYou Hit a Mine!',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontFamily: 'Topaz',
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 24,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
                 ),
 
                 const SizedBox(height: 24),
-                ClickButton(
+                ElevatedButton(
                   onPressed: () async {
                     Navigator.of(context).pop();
                     onRetry();
                     showLevelOverlay(context, game.level);
                   },
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
-                    ),
-                    backgroundColor: Theme.of(context).colorScheme.primary,
-                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(24),
                     ),
-                    elevation: 8,
-                    shadowColor: Colors.black.withOpacity(0.3),
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
                   ),
-                  child: const Text(
-                    'Try Again',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 36,
+                      vertical: 12,
+                    ),
+                    decoration: BoxDecoration(
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF00F6FF).withValues(alpha: .7),
+                          blurRadius: 11,
+                          offset: const Offset(0, 0),
+                        ),
+                      ],
+                      color: const Color(0xFF0B1E3D),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFFFA200),
+                        width: 3,
+                      ),
+                    ),
+                    child: Text(
+                      'TRY AGAIN',
+                      style: TextStyle(
+                        color: Color(0xFFFFDD00),
+                        fontFamily: 'Acsioma',
+                        fontSize: 18,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -314,7 +353,7 @@ class DialogUtils {
               border: Border.all(color: Color(0xFFffa200), width: 25),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.3),
+                  color: Colors.black.withValues(alpha: .3),
                   blurRadius: 16,
                   offset: Offset(0, 8),
                 ),
@@ -329,7 +368,6 @@ class DialogUtils {
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontFamily: 'Topaz',
                     fontSize: 36,
-                    fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                   textAlign: TextAlign.center,
@@ -350,7 +388,7 @@ class DialogUtils {
                       BoxShadow(
                         offset: Offset(0, 4),
                         blurRadius: 8,
-                        color: Colors.black.withOpacity(0.3),
+                        color: Colors.black.withValues(alpha: .3),
                       ),
                     ],
                   ),
@@ -404,14 +442,11 @@ class DialogUtils {
                             borderRadius: BorderRadius.circular(24),
                           ),
                           elevation: 8,
-                          shadowColor: Colors.black.withOpacity(0.3),
+                          shadowColor: Colors.black.withValues(alpha: .3),
                         ),
                         child: const Text(
                           'Start',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: TextStyle(fontSize: 20),
                         ),
                       ),
                     ],

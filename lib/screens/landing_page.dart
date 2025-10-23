@@ -32,8 +32,6 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
-    print('🧭 LandingPage initState triggered');
-    // _checkExistingAuth();
   }
 
   @override
@@ -145,7 +143,6 @@ class _LandingPageState extends State<LandingPage> {
 
   @override
   Widget build(BuildContext context) {
-    print('🧭 Entered LandingPage');
     return Scaffold(
       backgroundColor: const Color(0xFFFCF4E4),
       body: SafeArea(
@@ -179,7 +176,7 @@ class _LandingPageState extends State<LandingPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -191,7 +188,7 @@ class _LandingPageState extends State<LandingPage> {
                       decoration: InputDecoration(
                         hintText: 'Username', // Changed from Email
                         hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                          color: const Color(0xFF0B1E3D).withValues(alpha: 0.6),
                         ),
                         prefixIcon: const Icon(
                           Icons.person, // Changed from email icon
@@ -231,7 +228,7 @@ class _LandingPageState extends State<LandingPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 4),
                         ),
@@ -244,7 +241,7 @@ class _LandingPageState extends State<LandingPage> {
                       decoration: InputDecoration(
                         hintText: 'Password',
                         hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withOpacity(0.6),
+                          color: const Color(0xFF0B1E3D).withValues(alpha: 0.6),
                         ),
                         prefixIcon: const Icon(
                           Icons.lock,
@@ -311,18 +308,20 @@ class _LandingPageState extends State<LandingPage> {
                       decoration: BoxDecoration(
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(0xFF00F6FF).withOpacity(0.7),
+                            color: const Color(
+                              0xFF00F6FF,
+                            ).withValues(alpha: 0.7),
                             blurRadius: 11,
                             offset: const Offset(0, 0),
                           ),
                         ],
                         color: _isLoading
-                            ? const Color(0xFF0B1E3D).withOpacity(0.6)
+                            ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
                             : const Color(0xFF0B1E3D),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: _isLoading
-                              ? const Color(0xFFFFA200).withOpacity(0.6)
+                              ? const Color(0xFFFFA200).withValues(alpha: 0.6)
                               : const Color(0xFFFFA200),
                           width: 3,
                         ),
