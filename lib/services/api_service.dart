@@ -236,17 +236,13 @@ class ApiService {
     }
   }
 
-  // Get leaderboard
-  Future<List<dynamic>> getLeaderboard({
-    int? gridWidth,
-    int? gridHeight,
-    int? mineCount,
-    int limit = 10,
+  Future<List<Map<String, dynamic>>> getLeaderboard({
+    int? levelId,
+    int limit = 50,
   }) async {
     String url = '${ApiConstants.baseUrl}/leaderboard?limit=$limit';
-    if (gridWidth != null && gridHeight != null && mineCount != null) {
-      url +=
-          '&grid_width=$gridWidth&grid_height=$gridHeight&mine_count=$mineCount';
+    if (levelId != null) {
+      url += '&level_id=$levelId';
     }
 
     final response = await _makeRequest(
@@ -254,9 +250,10 @@ class ApiService {
     );
 
     if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => item as Map<String, dynamic>).toList();
     } else {
-      throw response;
+      throw Exception('Failed to load leaderboard: ${response.statusCode}');
     }
   }
 
