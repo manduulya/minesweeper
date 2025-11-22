@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
+import '../service_utils/country_data.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,38 +18,17 @@ class _SettingsPageState extends State<SettingsPage> {
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
+  final TextEditingController _countrySearchController =
+      TextEditingController();
 
-  String? _selectedCountry;
+  String? _selectedCountryFlagCode;
   bool _isLoading = false;
-  bool _showPasswordFields = false;
-
-  // List of countries for the dropdown
-  final List<String> _countries = [
-    'United States',
-    'Canada',
-    'United Kingdom',
-    'Australia',
-    'Germany',
-    'France',
-    'Japan',
-    'South Korea',
-    'Brazil',
-    'Mexico',
-    'India',
-    'China',
-    'Russia',
-    'Italy',
-    'Spain',
-    'Netherlands',
-    'Sweden',
-    'Norway',
-    'Denmark',
-    'Switzerland',
-  ];
+  List<CountryData> _filteredCountries = [];
 
   @override
   void initState() {
     super.initState();
+    _filteredCountries = CountryHelper.getCountriesSorted();
     _initializeSettings();
   }
 
@@ -57,7 +37,8 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsService = context.read<SettingsService>();
 
     _usernameController.text = authService.username ?? '';
-    _selectedCountry = settingsService.userCountry;
+    _selectedCountryFlagCode =
+        settingsService.userCountryFlagCode ?? 'international';
   }
 
   @override
@@ -66,7 +47,23 @@ class _SettingsPageState extends State<SettingsPage> {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
+    _countrySearchController.dispose();
     super.dispose();
+  }
+
+  void _filterCountries(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredCountries = CountryHelper.getCountriesSorted();
+      } else {
+        _filteredCountries = CountryHelper.getCountriesSorted()
+            .where(
+              (country) =>
+                  country.name.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
+    });
   }
 
   Future<void> _updateUsername() async {
@@ -75,9 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final authService = context.read<AuthService>();
@@ -94,32 +89,37 @@ class _SettingsPageState extends State<SettingsPage> {
       _showErrorSnackBar('Error updating username: $e');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   Future<void> _updateCountry() async {
-    if (_selectedCountry == null) {
+    if (_selectedCountryFlagCode == null) {
       _showErrorSnackBar('Please select a country');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final settingsService = context.read<SettingsService>();
-      await settingsService.updateUserCountry(_selectedCountry!);
-      _showSuccessSnackBar('Country updated successfully');
+      final authService = context.read<AuthService>();
+
+      final success = await settingsService.updateUserCountry(
+        _selectedCountryFlagCode!,
+      );
+
+      if (success) {
+        // Refresh the auth service to update the flag everywhere
+        await authService.fetchUserProfile();
+        _showSuccessSnackBar('Country updated successfully');
+      } else {
+        _showErrorSnackBar('Failed to update country. Please try again.');
+      }
     } catch (e) {
       _showErrorSnackBar('Error updating country: $e');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   Future<void> _updatePassword() async {
@@ -140,9 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final authService = context.read<AuthService>();
@@ -156,9 +154,6 @@ class _SettingsPageState extends State<SettingsPage> {
         _currentPasswordController.clear();
         _newPasswordController.clear();
         _confirmPasswordController.clear();
-        setState(() {
-          _showPasswordFields = false;
-        });
       } else {
         _showErrorSnackBar(
           'Failed to update password. Check your current password.',
@@ -168,9 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _showErrorSnackBar('Error updating password: $e');
     }
 
-    setState(() {
-      _isLoading = false;
-    });
+    setState(() => _isLoading = false);
   }
 
   void _showSuccessSnackBar(String message) {
@@ -214,7 +207,12 @@ class _SettingsPageState extends State<SettingsPage> {
         centerTitle: true,
         leading: IconButton(
           icon: Icon(Icons.arrow_back, color: Color(0xFF0B1E3D)),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () async {
+            // Refresh profile before going back
+            final authService = context.read<AuthService>();
+            await authService.fetchUserProfile();
+            Navigator.of(context).pop();
+          },
         ),
       ),
       body: SingleChildScrollView(
@@ -225,7 +223,6 @@ class _SettingsPageState extends State<SettingsPage> {
             // Profile Settings Section
             _buildSectionHeader('Profile Settings'),
             _buildSettingsCard([
-              // Username Setting
               _buildSettingsTile(
                 icon: Icons.person,
                 title: 'Username',
@@ -233,21 +230,19 @@ class _SettingsPageState extends State<SettingsPage> {
                 onTap: () => _showUsernameDialog(),
               ),
               Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
-              // Country Setting
               _buildSettingsTile(
                 icon: Icons.flag,
                 title: 'Country',
                 subtitle: settingsService.userCountry ?? 'Not set',
                 trailing: Text(
                   settingsService.getCountryFlag(
-                    settingsService.userCountry ?? '',
+                    settingsService.userCountryFlagCode ?? 'international',
                   ),
                   style: TextStyle(fontSize: 24),
                 ),
                 onTap: () => _showCountryDialog(),
               ),
               Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
-              // Change Password
               _buildSettingsTile(
                 icon: Icons.lock,
                 title: 'Change Password',
@@ -261,30 +256,25 @@ class _SettingsPageState extends State<SettingsPage> {
             // Audio Settings Section
             _buildSectionHeader('Audio Settings'),
             _buildSettingsCard([
-              // Sound Effects Toggle
               _buildSettingsTile(
                 icon: Icons.volume_up,
                 title: 'Sound Effects',
                 subtitle: 'Game sound effects',
                 trailing: Switch(
                   value: settingsService.soundEffectsEnabled,
-                  onChanged: (value) {
-                    settingsService.setSoundEffects(value);
-                  },
+                  onChanged: (value) => settingsService.setSoundEffects(value),
                   activeColor: Color(0xFF0B1E3D),
                 ),
               ),
               Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
-              // Background Music Toggle
               _buildSettingsTile(
                 icon: Icons.music_note,
                 title: 'Background Music',
                 subtitle: 'Background music during gameplay',
                 trailing: Switch(
                   value: settingsService.backgroundMusicEnabled,
-                  onChanged: (value) {
-                    settingsService.setBackgroundMusic(value);
-                  },
+                  onChanged: (value) =>
+                      settingsService.setBackgroundMusic(value),
                   activeColor: Color(0xFF0B1E3D),
                 ),
               ),
@@ -295,7 +285,6 @@ class _SettingsPageState extends State<SettingsPage> {
             // Account Actions Section
             _buildSectionHeader('Account'),
             _buildSettingsCard([
-              // Logout
               _buildSettingsTile(
                 icon: Icons.logout,
                 title: 'Logout',
@@ -418,37 +407,97 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showCountryDialog() {
+    final settingsService = context.read<SettingsService>();
+
+    // Reset search and filtered list
+    _countrySearchController.clear();
+    _filteredCountries = CountryHelper.getCountriesSorted();
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Select Country'),
-        content: DropdownButtonFormField<String>(
-          value: _selectedCountry,
-          items: _countries
-              .map(
-                (country) =>
-                    DropdownMenuItem(value: country, child: Text(country)),
-              )
-              .toList(),
-          onChanged: (value) {
-            setState(() {
-              _selectedCountry = value;
-            });
-          },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text('Select Country'),
+          content: SizedBox(
+            width: double.maxFinite,
+            height: 500,
+            child: Column(
+              children: [
+                // Search field
+                TextField(
+                  controller: _countrySearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search countries...',
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() {
+                      _filterCountries(value);
+                    });
+                  },
+                ),
+                SizedBox(height: 12),
+                // Countries list
+                Expanded(
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: _filteredCountries.length,
+                    itemBuilder: (context, index) {
+                      final country = _filteredCountries[index];
+                      final isSelected =
+                          _selectedCountryFlagCode == country.flagCode;
+
+                      return ListTile(
+                        leading: Text(
+                          settingsService.getCountryFlag(country.flagCode),
+                          style: TextStyle(fontSize: 28),
+                        ),
+                        title: Text(
+                          country.name,
+                          style: TextStyle(
+                            fontWeight: isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                          ),
+                        ),
+                        trailing: isSelected
+                            ? Icon(Icons.check_circle, color: Color(0xFF0B1E3D))
+                            : null,
+                        selected: isSelected,
+                        selectedTileColor: Color(
+                          0xFF0B1E3D,
+                        ).withValues(alpha: .05),
+                        onTap: () {
+                          setState(() {
+                            _selectedCountryFlagCode = country.flagCode;
+                          });
+                          Navigator.pop(context);
+                          _updateCountry();
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _countrySearchController.clear();
+                Navigator.pop(context);
+              },
+              child: Text('Cancel'),
+            ),
+          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _updateCountry();
-            },
-            child: Text('Update'),
-          ),
-        ],
       ),
     );
   }

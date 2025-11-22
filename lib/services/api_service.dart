@@ -161,13 +161,12 @@ class ApiService {
     }
   }
 
-  // Update game state
   Future<Map<String, dynamic>> updateGame(
     int gameId,
     List<List<int>> revealedCells,
-    List<List<int>> flaggedCells,
-  ) async {
-    final headers = await _getHeaders();
+    List<List<int>> flaggedCells, {
+    int? hintCount,
+  }) async {
     final response = await _makeRequest(
       () async => http.put(
         Uri.parse('${ApiConstants.baseUrl}/game/update'),
@@ -176,6 +175,7 @@ class ApiService {
           'game_id': gameId,
           'revealed_cells': revealedCells,
           'flagged_cells': flaggedCells,
+          if (hintCount != null) 'hints': hintCount,
         }),
       ),
     );
@@ -215,6 +215,27 @@ class ApiService {
       return jsonDecode(response.body);
     } else {
       throw response;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getUserScore() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}/user/score'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 404) {
+        // No score yet, return defaults
+        return {'score': 0, 'level': 0};
+      } else {
+        throw Exception('Failed to fetch user score: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching user score: $e');
+      return null;
     }
   }
 

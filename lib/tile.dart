@@ -7,4 +7,6 @@ class Tile {
   bool isSafelyRevealed = false;
   bool shouldAnimate = false;
   bool isActive = true;
+  bool isHintAnimating = false;
+  String? hintFrame; // "flag", "question", "exclamation", "safe"
 }

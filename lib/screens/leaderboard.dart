@@ -216,7 +216,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Using sample data. ${_errorMessage}',
+                            'Using sample data. $_errorMessage',
                             style: TextStyle(color: Colors.orange.shade900),
                           ),
                         ),

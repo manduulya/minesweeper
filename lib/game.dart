@@ -34,15 +34,15 @@ class Game {
 
     for (var row in board) {
       for (var tile in row) {
-        if (tile.isFlagged) currentFlags++;
+        // Only count user-placed flags (exclude hint-placed flags)
+        if (tile.isFlagged && !tile.isSafelyRevealed) currentFlags++;
+
+        // Count bombs revealed safely via hint
         if (tile.isBomb && tile.isSafelyRevealed) safelyRevealedBombs++;
       }
     }
 
-    // Effective bomb count = original bomb count - safely revealed bombs
     int effectiveBombCount = bombCount - safelyRevealedBombs;
-
-    // Remaining flags needed = effective bombs - currently placed flags
     return effectiveBombCount - currentFlags;
   }
 
@@ -233,22 +233,6 @@ class Game {
       score += base + bonus;
       finalScore = score;
       return true;
-    }
-    return false;
-  }
-
-  // Updated remainingFlags getter to account for safely revealed bombs
-  bool useHint() {
-    if (isGameOver) return false;
-
-    for (var row in board) {
-      for (var tile in row) {
-        if (!tile.isRevealed && !tile.isBomb && !tile.isFlagged) {
-          tile.isRevealed = true;
-          tile.isHintRevealed = true;
-          return true;
-        }
-      }
     }
     return false;
   }
