@@ -27,6 +27,7 @@ class _LandingPageState extends State<LandingPage> {
   // Server integration
   final ApiService _apiService = ApiService();
   final ErrorHandler _errorHandler = ErrorHandler();
+  bool _passwordVisible = false;
   bool _isLoading = false;
 
   @override
@@ -236,7 +237,7 @@ class _LandingPageState extends State<LandingPage> {
                     ),
                     child: TextField(
                       controller: _passwordController,
-                      obscureText: true,
+                      obscureText: !_passwordVisible,
                       enabled: !_isLoading,
                       decoration: InputDecoration(
                         hintText: 'Password',
@@ -247,6 +248,22 @@ class _LandingPageState extends State<LandingPage> {
                           Icons.lock,
                           color: Color(0xFF0B1E3D),
                         ),
+
+                        // 👁️ Eye icon
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _passwordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                            color: const Color(0xFF0B1E3D),
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _passwordVisible = !_passwordVisible;
+                            });
+                          },
+                        ),
+
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(

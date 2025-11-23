@@ -104,6 +104,59 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
       child: AnimatedBuilder(
         animation: Listenable.merge([_pulseAnimation, _scaleAnimation]),
         builder: (context, child) {
+          if (widget.tile.isHintAnimating && widget.tile.hintFrame != null) {
+            IconData iconData;
+            Color glowColor;
+
+            switch (widget.tile.hintFrame) {
+              case "flag":
+                iconData = Icons.flag;
+                glowColor = const Color.fromARGB(255, 78, 18, 14);
+                break;
+              case "question":
+                iconData = Icons.help_outline;
+                glowColor = const Color.fromARGB(255, 12, 19, 80);
+                break;
+              case "exclamation":
+                iconData = Icons.priority_high;
+                glowColor = Colors.red;
+                break;
+              case "safe":
+                return const SizedBox();
+              default:
+                return const SizedBox();
+            }
+
+            return AnimatedBuilder(
+              animation: _pulseController,
+              builder: (context, child) {
+                double glowOpacity = 0.2 + 0.3 * _pulseController.value;
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Glow behind the icon
+                    if (widget.tile.hintFrame != "safe")
+                      Container(
+                        width: 32,
+                        height: 32,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: glowColor.withOpacity(glowOpacity),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ],
+                        ),
+                      ),
+                    Icon(iconData, color: glowColor, size: 20),
+                  ],
+                );
+              },
+            );
+          }
+
           return Container(
             decoration: BoxDecoration(
               color: _getTileColor(),
