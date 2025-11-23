@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:country_flags/country_flags.dart';
 import 'package:provider/provider.dart';
+import 'package:mobile_experiment/click_button_widget.dart';
 import '../board.dart';
 import 'leaderboard.dart';
 import 'settings.dart';
@@ -271,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 40),
 
                     // Play button
-                    ElevatedButton(
+                    ClickButton(
                       onPressed: _isLoading
                           ? null
                           : () async {

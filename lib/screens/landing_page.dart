@@ -187,12 +187,12 @@ class _LandingPageState extends State<LandingPage> {
                       controller: _usernameController,
                       enabled: !_isLoading,
                       decoration: InputDecoration(
-                        hintText: 'Username', // Changed from Email
+                        hintText: 'Username',
                         hintStyle: TextStyle(
                           color: const Color(0xFF0B1E3D).withValues(alpha: 0.6),
                         ),
                         prefixIcon: const Icon(
-                          Icons.person, // Changed from email icon
+                          Icons.person,
                           color: Color(0xFF0B1E3D),
                         ),
                         filled: true,
