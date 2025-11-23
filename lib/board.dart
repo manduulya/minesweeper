@@ -24,6 +24,8 @@ class _GameBoardState extends State<GameBoard> {
   bool _showStartDialog = false;
   bool isHintMode = false;
   bool _inputLocked = false;
+  bool _isFinishingGame = false;
+  bool _showHintDecrease = false;
 
   List<Map<String, dynamic>> levels = [];
   int currentLevelIndex = 0;
@@ -67,25 +69,69 @@ class _GameBoardState extends State<GameBoard> {
 
   Future<void> _loadLevelsAndStart() async {
     levels = await loadLevels();
-    currentLevelIndex = 0;
+
+    print('🚀 Loading levels and starting...');
 
     // Try to load an active game from server first
     await _loadActiveGame();
 
-    // If no active game was loaded, start a new one
+    // If no active game was loaded, start a new one with user's cumulative score
     if (game == null) {
+      print('🚀 No active game, fetching user progress...');
+
+      // Fetch user's progress from database
+      final userScore = await _apiService.getUserScore();
+      final cumulativeScore = userScore?['score'] ?? 0;
+      final lastCompletedLevel = userScore?['level'] ?? 0;
+
+      print('🚀 User cumulative score: $cumulativeScore');
+      print('🚀 Last completed level: $lastCompletedLevel');
+
+      // Determine which level to start
+      int nextLevelIndex = 0;
+      if (lastCompletedLevel > 0) {
+        // Find index of next level after last completed
+        nextLevelIndex = levels.indexWhere(
+          (level) => level['level'] == lastCompletedLevel + 1,
+        );
+
+        // If not found, start from last completed level
+        if (nextLevelIndex == -1) {
+          nextLevelIndex = levels.indexWhere(
+            (level) => level['level'] == lastCompletedLevel,
+          );
+        }
+
+        // If still not found, start from beginning
+        if (nextLevelIndex == -1) {
+          nextLevelIndex = 0;
+        }
+      }
+
+      print('🚀 Starting at level index: $nextLevelIndex');
+
+      currentLevelIndex = nextLevelIndex;
       await _initializeGameFromLevel(currentLevelIndex);
+
+      print('🚀 Game initialized with score: ${game?.score}');
+    } else {
+      print('🚀 Active game loaded with score: ${game?.score}');
     }
   }
 
   Future<void> _initializeGameFromLevel(int levelIdx) async {
     final levelData = levels[levelIdx];
+
+    // Fetch current score from database
+    final userScore = await _apiService.getUserScore();
+    final currentScore = userScore?['score'] ?? 0;
+
     final newGame = Game(
       levelData['rows'],
       levelData['cols'],
       levelData['bombs'],
       level: levelData['level'],
-      score: game?.score ?? 0,
+      score: currentScore, // ← Use score from database
       winningStreak: game?.winningStreak ?? 0,
       hintCount: game?.hintCount ?? 3,
       shape: (levelData['shape'] as List)
@@ -131,7 +177,7 @@ class _GameBoardState extends State<GameBoard> {
         serverGameId = parsedGameId;
         serverConnected = true;
       });
-    } catch (e, st) {
+    } catch (e) {
       setState(() {
         serverConnected = false;
       });
@@ -239,19 +285,28 @@ class _GameBoardState extends State<GameBoard> {
       final serverHints = gameData['hints'] as int? ?? 3;
       final serverStreak = gameData['streak'] as int? ?? 0;
 
+      // ✅ FETCH CUMULATIVE SCORE FROM DATABASE
+      print('🔍 Fetching cumulative score for active game...');
+      final userScore = await _apiService.getUserScore();
+      final cumulativeScore = userScore?['score'] ?? 0;
+      print('🔍 Cumulative score from database: $cumulativeScore');
+
       // Create a new game with the level configuration
       final newGame = Game(
         rows,
         cols,
         bombs,
         level: levelNumber,
-        score: game?.score ?? 0,
+        score: cumulativeScore, // ✅ Use cumulative score from database
         winningStreak: serverStreak,
         hintCount: serverHints,
         shape: (levelData['shape'] as List)
             .map((row) => (row as List).map((e) => e as int).toList())
             .toList(),
       );
+
+      print('🔍 Active game created with score: ${newGame.score}');
+
       // CLEAR all bombs that were randomly generated
       for (int r = 0; r < rows; r++) {
         for (int c = 0; c < cols; c++) {
@@ -302,6 +357,20 @@ class _GameBoardState extends State<GameBoard> {
           }
         }
       }
+      final gameStatus = gameData['game_status'] as String? ?? 'active';
+      if (gameStatus == 'lost') {
+        newGame.isGameOver = true;
+        newGame.isGameWon = false;
+        _inputLocked = true; // prevent further interaction until restart
+      } else if (gameStatus == 'won') {
+        newGame.isGameOver = true;
+        newGame.isGameWon = true;
+        _inputLocked = true;
+      } else {
+        newGame.isGameOver = false;
+        newGame.isGameWon = false;
+        _inputLocked = false;
+      }
 
       setState(() {
         game = newGame;
@@ -310,7 +379,14 @@ class _GameBoardState extends State<GameBoard> {
         serverConnected = true;
         currentLevelIndex = levelIndex;
       });
-    } catch (e, stackTrace) {
+
+      if (newGame.isGameOver && !newGame.isGameWon) {
+        _showGameOverDialog();
+      }
+
+      print('🔍 Active game loaded successfully with score: ${game?.score}');
+    } catch (e) {
+      print('❌ Error loading active game: $e');
       setState(() {
         serverConnected = false;
       });
@@ -318,45 +394,74 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   Future<void> _updateServerGame() async {
-    if (!serverConnected || serverGameId == null) {
-      return;
-    }
+    if (!serverConnected || serverGameId == null) return;
 
     try {
       await _apiService.updateGame(
         serverGameId!,
         _getRevealedCells(),
         _getFlaggedCells(),
+        hintCount: game!.hintCount, // <- send hint count
       );
     } catch (e) {
       print('Failed to update server game: $e');
     }
   }
 
-  // Finish server game
+  Future<void> _handleGameWin() async {
+    if (_isFinishingGame) {
+      print('⚠️ Already finishing game, skipping duplicate call');
+      return;
+    }
+
+    _isFinishingGame = true; // ← Set the flag!
+    _inputLocked = true;
+    game!.finalScore = game!.score;
+
+    await _finishServerGame(true);
+
+    if (mounted) {
+      Future.delayed(Duration.zero, () {
+        _showWinDialog();
+      });
+    }
+  }
+
   Future<void> _finishServerGame(bool won) async {
     if (!serverConnected || serverGameId == null || game == null) {
+      print(
+        '⚠️ Cannot finish server game: serverConnected=$serverConnected, serverGameId=$serverGameId, game=${game != null}',
+      );
       return;
     }
 
     try {
       final hints = game!.hintCount;
       final streak = game!.winningStreak;
-      // Pass the current level and score to the server
+      final totalScore = game!.score;
+
+      print('📤 Finishing game on server:');
+      print('   - won: $won');
+      print('   - level: ${game!.level}');
+      print('   - score: $totalScore');
+      print('   - hints: $hints');
+      print('   - streak: $streak');
+
       final result = await _apiService.finishGame(
         won,
-        game!.level, // Current level number
-        game!.score, // Current score
+        game!.level,
+        totalScore,
         hints,
         streak,
       );
 
-      // Show success message with score
+      print('✅ Server response: $result');
+
       if (mounted && won) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Level ${game!.level} completed! Score: ${game!.score}',
+              'Level ${game!.level} completed! Total Score: $totalScore',
             ),
             duration: Duration(seconds: 2),
             backgroundColor: Colors.green,
@@ -364,8 +469,10 @@ class _GameBoardState extends State<GameBoard> {
         );
       }
     } catch (e) {
-      print('Failed to finish server game: $e');
+      print('❌ Failed to finish server game: $e');
+      _isFinishingGame = false; // ← Reset on error
     }
+    // Don't reset flag on success - prevent any future calls for this game
   }
 
   void _handleGameStart() {
@@ -386,50 +493,75 @@ class _GameBoardState extends State<GameBoard> {
 
   void handleTap(int r, int c) async {
     if (_inputLocked) return;
-    if (isHintMode &&
-        !game!.board[r][c].isRevealed &&
-        !game!.board[r][c].isFlagged) {
-      setState(() {
-        game!.board[r][c].isRevealed = true;
-        game!.board[r][c].isHintRevealed = true;
-        game!.hintCount--;
-        isHintMode = false;
 
-        if (game!.board[r][c].isBomb) {
-          game!.board[r][c].isSafelyRevealed = true;
-        }
+    final tile = game!.board[r][c];
+
+    // === Hint mode ===
+    if (isHintMode && !tile.isRevealed && !tile.isFlagged) {
+      setState(() {
+        tile.isHintAnimating = true;
       });
 
-      game!.checkWin();
-      await _updateServerGame();
+      // Animation frames
+      final frames = ["flag", "question", "exclamation", "safe"];
 
-      if (game!.isGameWon && game!.isGameOver) {
-        game!.finalScore = game!.score;
-        await _finishServerGame(true);
-        Future.delayed(Duration.zero, () {
-          _showWinDialog();
+      for (int i = 0; i < frames.length; i++) {
+        await Future.delayed(const Duration(milliseconds: 150));
+        if (!mounted) return;
+        setState(() {
+          tile.hintFrame = frames[i];
         });
       }
 
+      // End animation
+      setState(() {
+        tile.isHintAnimating = false;
+        tile.hintFrame = null;
+      });
+
+      // Now apply REAL hint logic
+      setState(() {
+        if (tile.isBomb) {
+          tile.isFlagged = true;
+          tile.isSafelyRevealed = true;
+        } else {
+          tile.isRevealed = true;
+          tile.isHintRevealed = true;
+        }
+
+        game!.hintCount--;
+
+        _showHintDecrease = true;
+        isHintMode = false;
+      });
+      Future.delayed(const Duration(milliseconds: 600), () {
+        if (mounted) {
+          setState(() {
+            _showHintDecrease = false;
+          });
+        }
+      });
+
+      await _updateServerGame();
+      game!.checkWin();
+
+      if (game!.isGameWon && game!.isGameOver) {
+        await _handleGameWin();
+      }
       return;
     }
 
-    // Normal reveal
+    // === Normal reveal ===
     setState(() {
       game!.reveal(r, c);
     });
 
-    // Update server after each move
     await _updateServerGame();
 
     if (game!.isGameOver) {
       _inputLocked = true;
       if (game!.isGameWon) {
-        game!.finalScore = game!.score;
-        await _finishServerGame(true); // Server: game won
-        Future.delayed(Duration.zero, () {
-          _showWinDialog();
-        });
+        await _handleGameWin();
       } else {
         await _finishServerGame(false); // Server: game lost
         await _showBombSequenceAndDialog();
@@ -482,6 +614,7 @@ class _GameBoardState extends State<GameBoard> {
 
   Future<void> _restartGame() async {
     bool isLoss = game!.isGameOver && !game!.isGameWon;
+    _isFinishingGame = false; // ← Reset flag
     await _initializeGameFromLevel(currentLevelIndex);
     setState(() {
       _inputLocked = false;
@@ -490,9 +623,11 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   void _startNextLevel() {
+    _isFinishingGame = false; // ← Reset flag
     setState(() {
       _inputLocked = false;
     });
+
     if (currentLevelIndex + 1 < levels.length) {
       currentLevelIndex++;
       _initializeGameFromLevel(currentLevelIndex);
@@ -508,6 +643,7 @@ class _GameBoardState extends State<GameBoard> {
 
   void handleFlag(int r, int c) async {
     if (_inputLocked) return;
+
     setState(() {
       if (!game!.board[r][c].isRevealed && !game!.isGameOver) {
         if (!game!.board[r][c].isFlagged) {
@@ -527,31 +663,30 @@ class _GameBoardState extends State<GameBoard> {
     await _updateServerGame();
 
     if (game!.isGameWon && game!.isGameOver) {
-      game!.finalScore = game!.score;
-      await _finishServerGame(true); // Server: game won
-      Future.delayed(Duration.zero, () {
-        _showWinDialog();
-      });
+      await _handleGameWin(); // ← Only call this, it handles everything
     }
   }
 
   Future<void> _handleBackToHome() async {
-    try {
-      // Optional: Finish the current game on the server before leaving
-      if (serverConnected && serverGameId != null && game != null) {
-        await _finishServerGame(false);
-      }
-
-      // Navigate back to home screen
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
-    } catch (e) {
-      // Still navigate back even if server update fails
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+    if (mounted) {
+      Navigator.of(context).pop();
     }
+    // try {
+    //   // Optional: Finish the current game on the server before leaving
+    //   // if (serverConnected && serverGameId != null && game != null) {
+    //   //   await _finishServerGame(false);
+    //   // }
+
+    //   // Navigate back to home screen
+    //   if (mounted) {
+    //     Navigator.of(context).pop();
+    //   }
+    // } catch (e) {
+    //   // Still navigate back even if server update fails
+    //   if (mounted) {
+    //     Navigator.of(context).pop();
+    //   }
+    // }
   }
 
   void _showWinDialog() {
@@ -682,67 +817,132 @@ class _GameBoardState extends State<GameBoard> {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               // Mines count
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Image.asset(
-                                    'assets/bombRevealed.png',
-                                    width: 24,
-                                    height: 24,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${game!.remainingFlags}',
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
-                                          color: const Color(0xFF1B2844),
-                                        ),
-                                  ),
-                                ],
+                              SizedBox(
+                                width: 60, // fixed width
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/bombRevealed.png',
+                                      width: 24,
+                                      height: 24,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${game!.remainingFlags}',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                            color: const Color(0xFF1B2844),
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
+
                               // Streak count
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Image.asset(
-                                    'assets/streakIcon.png',
-                                    width: 24,
-                                    height: 24,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${game!.winningStreak}',
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
-                                          color: const Color(0xFF1B2844),
-                                        ),
-                                  ),
-                                ],
+                              SizedBox(
+                                width: 60, // fixed width
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/streakIcon.png',
+                                      width: 24,
+                                      height: 24,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${game!.winningStreak}',
+                                      textAlign: TextAlign.center,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyLarge
+                                          ?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 20,
+                                            color: const Color(0xFF1B2844),
+                                          ),
+                                    ),
+                                  ],
+                                ),
                               ),
+
                               // Hint count
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Image.asset(
-                                    'assets/hintButton.png',
-                                    width: 24,
-                                    height: 24,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${game!.hintCount}',
-                                    style: Theme.of(context).textTheme.bodyLarge
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 20,
-                                          color: const Color(0xFF1B2844),
-                                        ),
-                                  ),
-                                ],
+                              SizedBox(
+                                width: 60, // fixed width
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Image.asset(
+                                      'assets/hintButton.png',
+                                      width: 24,
+                                      height: 24,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    SizedBox(
+                                      // allow enough height for the animation
+                                      height: 40,
+                                      child: Stack(
+                                        clipBehavior: Clip
+                                            .none, // important! allow overflow
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Text(
+                                            '${game!.hintCount}',
+                                            textAlign: TextAlign.center,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 20,
+                                                  color: const Color(
+                                                    0xFF1B2844,
+                                                  ),
+                                                ),
+                                          ),
+                                          if (_showHintDecrease)
+                                            Positioned(
+                                              top: -20,
+                                              child: TweenAnimationBuilder<double>(
+                                                tween: Tween(
+                                                  begin: 1.0,
+                                                  end: 0.0,
+                                                ),
+                                                duration: const Duration(
+                                                  milliseconds: 600,
+                                                ),
+                                                builder:
+                                                    (context, value, child) {
+                                                      return Opacity(
+                                                        opacity: value,
+                                                        child: Transform.scale(
+                                                          scale: 1.2,
+                                                          child: const Text(
+                                                            '-1',
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .bold,
+                                                              fontSize: 20,
+                                                              color: Colors.red,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -775,32 +975,39 @@ class _GameBoardState extends State<GameBoard> {
                                     (game!.hintCount > 0 && !game!.isGameOver)
                                     ? () async {
                                         setState(() {
-                                          isHintMode = true;
+                                          isHintMode = !isHintMode;
                                         });
+                                        return Future.value();
                                       }
-                                    : () async {},
+                                    : () async {
+                                        return Future.value();
+                                      },
                                 child: Container(
+                                  width: 150, // <-- FIXED WIDTH
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color:
-                                        (game!.hintCount > 0 &&
-                                            !game!.isGameOver)
-                                        ? Colors.blue.withValues(alpha: 0.1)
-                                        : Colors.grey.withValues(alpha: 0.1),
+                                    color: isHintMode
+                                        ? const Color(0xFF1B2844)
+                                        : (game!.hintCount > 0 &&
+                                              !game!.isGameOver)
+                                        ? Colors.blue.withOpacity(0.1)
+                                        : Colors.grey.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color:
-                                          (game!.hintCount > 0 &&
-                                              !game!.isGameOver)
+                                      color: isHintMode
+                                          ? const Color(0xFF1B2844)
+                                          : (game!.hintCount > 0 &&
+                                                !game!.isGameOver)
                                           ? Colors.blue
                                           : Colors.grey,
                                     ),
                                   ),
                                   child: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment
+                                        .center, // keep icon + text centered
                                     children: [
                                       Image.asset(
                                         'assets/hintButton.png',
@@ -809,15 +1016,16 @@ class _GameBoardState extends State<GameBoard> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Use Hint',
+                                        isHintMode ? 'Hint Mode' : 'Use Hint',
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
-                                          color:
-                                              (game!.hintCount > 0 &&
-                                                  !game!.isGameOver)
-                                              ? Colors.blue
-                                              : Colors.grey,
+                                          color: isHintMode
+                                              ? Colors.white
+                                              : (game!.hintCount > 0 &&
+                                                        !game!.isGameOver
+                                                    ? Colors.blue
+                                                    : Colors.grey),
                                         ),
                                       ),
                                     ],
@@ -837,6 +1045,7 @@ class _GameBoardState extends State<GameBoard> {
                                 ),
                                 onPressed: _restartGame,
                                 child: Container(
+                                  width: 150,
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
                                     vertical: 8,
