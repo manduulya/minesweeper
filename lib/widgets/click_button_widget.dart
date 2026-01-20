@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'sound_manager.dart';
+import '../sound_manager.dart';
 
 class ClickButton extends StatefulWidget {
   final Widget child;

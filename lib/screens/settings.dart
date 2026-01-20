@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:mine_master/managers/responsive_wrapper.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 import '../service_utils/country_data.dart';
@@ -193,108 +194,137 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCF4E4),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFCF4E4),
-        elevation: 0,
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            color: Color(0xFF0B1E3D),
-            fontWeight: FontWeight.bold,
-            fontSize: 24,
-          ),
-        ),
-        centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Color(0xFF0B1E3D)),
-          onPressed: () async {
-            // Refresh profile before going back
-            final authService = context.read<AuthService>();
-            await authService.fetchUserProfile();
-            Navigator.of(context).pop();
-          },
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Settings Section
-            _buildSectionHeader('Profile Settings'),
-            _buildSettingsCard([
-              _buildSettingsTile(
-                icon: Icons.person,
-                title: 'Username',
-                subtitle: authService.username ?? 'Not set',
-                onTap: () => _showUsernameDialog(),
+            // Fixed Header at top
+            ResponsiveWrapper(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    // Back button
+                    IconButton(
+                      icon: Icon(Icons.arrow_back, color: Color(0xFF0B1E3D)),
+                      onPressed: () async {
+                        // Refresh profile before going back
+                        final authService = context.read<AuthService>();
+                        await authService.fetchUserProfile();
+                        Navigator.of(context).pop();
+                      },
+                    ),
+
+                    // Title
+                    Text(
+                      'Settings',
+                      style: TextStyle(
+                        color: Color(0xFF0B1E3D),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                      ),
+                    ),
+
+                    // Spacer to balance the back button
+                    SizedBox(width: 48),
+                  ],
+                ),
               ),
-              Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
-              _buildSettingsTile(
-                icon: Icons.flag,
-                title: 'Country',
-                subtitle: settingsService.userCountry ?? 'Not set',
-                trailing: Text(
-                  settingsService.getCountryFlag(
-                    settingsService.userCountryFlagCode ?? 'international',
+            ),
+
+            // Scrollable content below
+            Expanded(
+              child: ResponsiveWrapper(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Profile Settings Section
+                      _buildSectionHeader('Profile Settings'),
+                      _buildSettingsCard([
+                        _buildSettingsTile(
+                          icon: Icons.person,
+                          title: 'Username',
+                          subtitle: authService.username ?? 'Not set',
+                          onTap: () => _showUsernameDialog(),
+                        ),
+                        Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
+                        _buildSettingsTile(
+                          icon: Icons.flag,
+                          title: 'Country',
+                          subtitle: settingsService.userCountry ?? 'Not set',
+                          trailing: Text(
+                            settingsService.getCountryFlag(
+                              settingsService.userCountryFlagCode ??
+                                  'international',
+                            ),
+                            style: TextStyle(fontSize: 24),
+                          ),
+                          onTap: () => _showCountryDialog(),
+                        ),
+                        Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
+                        _buildSettingsTile(
+                          icon: Icons.lock,
+                          title: 'Change Password',
+                          subtitle: 'Update your password',
+                          onTap: () => _showPasswordDialog(),
+                        ),
+                      ]),
+
+                      SizedBox(height: 24),
+
+                      // Audio Settings Section
+                      _buildSectionHeader('Audio Settings'),
+                      _buildSettingsCard([
+                        _buildSettingsTile(
+                          icon: Icons.volume_up,
+                          title: 'Sound Effects',
+                          subtitle: 'Game sound effects',
+                          trailing: Switch(
+                            value: settingsService.soundEffectsEnabled,
+                            onChanged: (value) =>
+                                settingsService.setSoundEffects(value),
+                            activeColor: Color(0xFF0B1E3D),
+                          ),
+                        ),
+                        Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
+                        _buildSettingsTile(
+                          icon: Icons.music_note,
+                          title: 'Background Music',
+                          subtitle: 'Background music during gameplay',
+                          trailing: Switch(
+                            value: settingsService.backgroundMusicEnabled,
+                            onChanged: (value) =>
+                                settingsService.setBackgroundMusic(value),
+                            activeColor: Color(0xFF0B1E3D),
+                          ),
+                        ),
+                      ]),
+
+                      SizedBox(height: 24),
+
+                      // Account Actions Section
+                      _buildSectionHeader('Account'),
+                      _buildSettingsCard([
+                        _buildSettingsTile(
+                          icon: Icons.logout,
+                          title: 'Logout',
+                          subtitle: 'Sign out of your account',
+                          titleColor: Colors.red,
+                          onTap: () => _showLogoutDialog(),
+                        ),
+                      ]),
+
+                      SizedBox(height: 40),
+                    ],
                   ),
-                  style: TextStyle(fontSize: 24),
-                ),
-                onTap: () => _showCountryDialog(),
-              ),
-              Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
-              _buildSettingsTile(
-                icon: Icons.lock,
-                title: 'Change Password',
-                subtitle: 'Update your password',
-                onTap: () => _showPasswordDialog(),
-              ),
-            ]),
-
-            SizedBox(height: 24),
-
-            // Audio Settings Section
-            _buildSectionHeader('Audio Settings'),
-            _buildSettingsCard([
-              _buildSettingsTile(
-                icon: Icons.volume_up,
-                title: 'Sound Effects',
-                subtitle: 'Game sound effects',
-                trailing: Switch(
-                  value: settingsService.soundEffectsEnabled,
-                  onChanged: (value) => settingsService.setSoundEffects(value),
-                  activeColor: Color(0xFF0B1E3D),
                 ),
               ),
-              Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
-              _buildSettingsTile(
-                icon: Icons.music_note,
-                title: 'Background Music',
-                subtitle: 'Background music during gameplay',
-                trailing: Switch(
-                  value: settingsService.backgroundMusicEnabled,
-                  onChanged: (value) =>
-                      settingsService.setBackgroundMusic(value),
-                  activeColor: Color(0xFF0B1E3D),
-                ),
-              ),
-            ]),
-
-            SizedBox(height: 24),
-
-            // Account Actions Section
-            _buildSectionHeader('Account'),
-            _buildSettingsCard([
-              _buildSettingsTile(
-                icon: Icons.logout,
-                title: 'Logout',
-                subtitle: 'Sign out of your account',
-                titleColor: Colors.red,
-                onTap: () => _showLogoutDialog(),
-              ),
-            ]),
-
-            SizedBox(height: 40),
+            ),
           ],
         ),
       ),
