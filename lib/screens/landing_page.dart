@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_experiment/click_button_widget.dart';
+import 'package:mine_master/widgets/click_button_widget.dart';
+import '../managers/responsive_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'sign_up.dart';
 import '../services/api_service.dart';
@@ -147,270 +148,276 @@ class _LandingPageState extends State<LandingPage> {
     return Scaffold(
       backgroundColor: const Color(0xFFFCF4E4),
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Welcome title
-                  Image.asset(
-                    'assets/WelcomeTitle.png',
-                    width: 300,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Minesweeper logo
-                  Image.asset(
-                    'assets/landingPageLogo.png',
-                    width: 200,
-                    fit: BoxFit.contain,
-                  ),
-                  const SizedBox(height: 40),
-
-                  // Username input field (changed from email)
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
+        child: ResponsiveWrapper(
+          child: Center(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Welcome title
+                    Image.asset(
+                      'assets/WelcomeTitle.png',
+                      width: 300,
+                      fit: BoxFit.contain,
                     ),
-                    child: TextField(
-                      controller: _usernameController,
-                      enabled: !_isLoading,
-                      decoration: InputDecoration(
-                        hintText: 'Username', // Changed from Email
-                        hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withValues(alpha: 0.6),
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.person, // Changed from email icon
-                          color: Color(0xFF0B1E3D),
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF0B1E3D),
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                      style: const TextStyle(color: Color(0xFF0B1E3D)),
+                    const SizedBox(height: 16),
+
+                    // Minesweeper logo
+                    Image.asset(
+                      'assets/landingPageLogo.png',
+                      width: 200,
+                      fit: BoxFit.contain,
                     ),
-                  ),
+                    const SizedBox(height: 40),
 
-                  const SizedBox(height: 16),
-
-                  // Password input field
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _passwordController,
-                      obscureText: !_passwordVisible,
-                      enabled: !_isLoading,
-                      decoration: InputDecoration(
-                        hintText: 'Password',
-                        hintStyle: TextStyle(
-                          color: const Color(0xFF0B1E3D).withValues(alpha: 0.6),
-                        ),
-                        prefixIcon: const Icon(
-                          Icons.lock,
-                          color: Color(0xFF0B1E3D),
-                        ),
-
-                        // 👁️ Eye icon
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _passwordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                            color: const Color(0xFF0B1E3D),
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _passwordVisible = !_passwordVisible;
-                            });
-                          },
-                        ),
-
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide.none,
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF0B1E3D),
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                      ),
-                      style: const TextStyle(color: Color(0xFF0B1E3D)),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Forgot password link
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _isLoading ? null : _handleForgotPassword,
-                      child: const Text(
-                        'Forgot password?',
-                        style: TextStyle(
-                          color: Color(0xFF0B1E3D),
-                          fontSize: 14,
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Login button
-                  ClickButton(
-                    onPressed: _isLoading ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                    ),
-                    child: Container(
-                      width: 280,
-                      height: 56,
+                    // Username input field (changed from email)
+                    Container(
                       decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: const Color(
-                              0xFF00F6FF,
-                            ).withValues(alpha: 0.7),
-                            blurRadius: 11,
-                            offset: const Offset(0, 0),
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
                           ),
                         ],
-                        color: _isLoading
-                            ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
-                            : const Color(0xFF0B1E3D),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: _isLoading
-                              ? const Color(0xFFFFA200).withValues(alpha: 0.6)
-                              : const Color(0xFFFFA200),
-                          width: 3,
-                        ),
                       ),
-                      child: Center(
-                        child: _isLoading
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              )
-                            : const Text(
-                                'LOGIN',
-                                style: TextStyle(
-                                  color: Color(0xFFFFDD00),
-                                  fontFamily: 'Acsioma',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
+                      child: TextField(
+                        controller: _usernameController,
+                        enabled: !_isLoading,
+                        decoration: InputDecoration(
+                          hintText: 'Username',
+                          hintStyle: TextStyle(
+                            color: const Color(
+                              0xFF0B1E3D,
+                            ).withValues(alpha: 0.6),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.person,
+                            color: Color(0xFF0B1E3D),
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0B1E3D),
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                        ),
+                        style: const TextStyle(color: Color(0xFF0B1E3D)),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
 
-                  // Sign up text with link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text(
-                        "Don't have an account? ",
-                        style: TextStyle(
-                          color: Color(0xFF0B1E3D),
-                          fontSize: 14,
-                        ),
+                    const SizedBox(height: 16),
+
+                    // Password input field
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
                       ),
-                      TextButton(
-                        onPressed: _isLoading
-                            ? null
-                            : () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const SignUpPage(),
-                                  ),
-                                );
-                              },
-                        style: TextButton.styleFrom(
-                          padding: EdgeInsets.zero,
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      child: TextField(
+                        controller: _passwordController,
+                        obscureText: !_passwordVisible,
+                        enabled: !_isLoading,
+                        decoration: InputDecoration(
+                          hintText: 'Password',
+                          hintStyle: TextStyle(
+                            color: const Color(
+                              0xFF0B1E3D,
+                            ).withValues(alpha: 0.6),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.lock,
+                            color: Color(0xFF0B1E3D),
+                          ),
+
+                          // 👁️ Eye icon
+                          suffixIcon: IconButton(
+                            icon: Icon(
+                              _passwordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: const Color(0xFF0B1E3D),
+                            ),
+                            onPressed: () {
+                              setState(() {
+                                _passwordVisible = !_passwordVisible;
+                              });
+                            },
+                          ),
+
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: Color(0xFF0B1E3D),
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
                         ),
+                        style: const TextStyle(color: Color(0xFF0B1E3D)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Forgot password link
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _isLoading ? null : _handleForgotPassword,
                         child: const Text(
-                          'Sign up',
+                          'Forgot password?',
                           style: TextStyle(
-                            color: Color(0xFFA21212),
+                            color: Color(0xFF0B1E3D),
                             fontSize: 14,
-                            fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 40),
+                    ),
+                    const SizedBox(height: 24),
 
-                  // Game description
-                  const Text(
-                    'Clear all safe tiles without hitting a mine. Build streaks to earn bonus points.',
-                    style: TextStyle(color: Color(0xFF0B1E3D), fontSize: 14),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 40),
-                ],
+                    // Login button
+                    ClickButton(
+                      onPressed: _isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      ),
+                      child: Container(
+                        width: 280,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF00F6FF,
+                              ).withValues(alpha: 0.7),
+                              blurRadius: 11,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
+                          color: _isLoading
+                              ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                              : const Color(0xFF0B1E3D),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isLoading
+                                ? const Color(0xFFFFA200).withValues(alpha: 0.6)
+                                : const Color(0xFFFFA200),
+                            width: 3,
+                          ),
+                        ),
+                        child: Center(
+                          child: _isLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                )
+                              : const Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                    color: Color(0xFFFFDD00),
+                                    fontFamily: 'Acsioma',
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Sign up text with link
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text(
+                          "Don't have an account? ",
+                          style: TextStyle(
+                            color: Color(0xFF0B1E3D),
+                            fontSize: 14,
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: _isLoading
+                              ? null
+                              : () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const SignUpPage(),
+                                    ),
+                                  );
+                                },
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          child: const Text(
+                            'Sign up',
+                            style: TextStyle(
+                              color: Color(0xFFA21212),
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+
+                    // Game description
+                    const Text(
+                      'Clear all safe tiles without hitting a mine. Build streaks to earn bonus points.',
+                      style: TextStyle(color: Color(0xFF0B1E3D), fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
           ),

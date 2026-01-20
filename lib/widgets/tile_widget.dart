@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'tile.dart';
+import '../tile.dart';
 
 class TileWidget extends StatefulWidget {
   final Tile tile;

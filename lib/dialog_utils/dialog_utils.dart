@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:mobile_experiment/click_button_widget.dart';
+import 'package:mine_master/widgets/click_button_widget.dart';
 import '../game.dart';
 import 'animated_start.dart';
 import 'animated_counter.dart';

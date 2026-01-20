@@ -1,5 +1,5 @@
 import 'dart:math';
-import 'package:mobile_experiment/sound_manager.dart';
+import 'package:mine_master/sound_manager.dart';
 import 'tile.dart';
 
 class Game {

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:country_flags/country_flags.dart';
+import 'package:mine_master/managers/responsive_wrapper.dart';
 import 'package:provider/provider.dart';
+import 'package:mine_master/widgets/click_button_widget.dart';
 import '../board.dart';
 import 'leaderboard.dart';
 import 'settings.dart';
@@ -105,10 +108,19 @@ class _HomeScreenState extends State<HomeScreen> {
             Text('Profile'),
             const Spacer(),
             if (userProfile!['country_flag'] != null)
-              CountryFlag.fromCountryCode(
-                userProfile!['country_flag'].toString().toUpperCase(),
-                theme: const ImageTheme(height: 24, width: 32),
-              ),
+              kIsWeb
+                  ? Text(
+                      userProfile!['country_flag'].toString().toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0B1E3D),
+                      ),
+                    )
+                  : CountryFlag.fromCountryCode(
+                      userProfile!['country_flag'].toString().toUpperCase(),
+                      theme: const ImageTheme(height: 24, width: 32),
+                    ),
           ],
         ),
         content: Column(
@@ -156,220 +168,266 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFCF4E4),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFCF4E4),
-        elevation: 0,
-        title: _isLoading
-            ? Text(
-                'Loading...',
-                style: TextStyle(
-                  color: Color(0xFF0B1E3D),
-                  fontWeight: FontWeight.bold,
-                ),
-              )
-            : GestureDetector(
-                onTap: () => _showProfileDialog(context),
-                child: Row(
-                  children: [
-                    Text(
-                      'Welcome, ${userProfile?['username'] ?? 'Player'}!',
-                      style: TextStyle(
-                        color: Color(0xFF0B1E3D),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    if (userProfile?['country_flag'] != null) ...[
-                      SizedBox(width: 8),
-                      CountryFlag.fromCountryCode(
-                        userProfile!['country_flag'].toString().toUpperCase(),
-                        theme: const ImageTheme(height: 20, width: 28),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-        actions: [
-          // Logout button
-          IconButton(
-            icon: _isLoggingOut
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Color(0xFF0B1E3D),
-                      ),
-                    ),
-                  )
-                : Icon(Icons.logout, color: Color(0xFF0B1E3D)),
-            onPressed: _isLoggingOut ? null : _handleLogout,
-          ),
-        ],
-      ),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadUserData,
-          color: Color(0xFF0B1E3D),
-          child: Center(
-            child: SingleChildScrollView(
-              physics: AlwaysScrollableScrollPhysics(),
+        child: Column(
+          children: [
+            // Fixed Header at top
+            ResponsiveWrapper(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 16,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Game logo
-                    Image.asset(
-                      'assets/landingPageLogo.png',
-                      width: 200,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Player stats card
-                    Card(
-                      color: Colors.white,
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(20),
-                        child: _isLoading
-                            ? Center(
-                                child: CircularProgressIndicator(
-                                  color: Color(0xFF0B1E3D),
-                                ),
-                              )
-                            : Column(
+                    // Welcome message with flag
+                    Expanded(
+                      child: _isLoading
+                          ? Text(
+                              'Loading...',
+                              style: TextStyle(
+                                color: Color(0xFF0B1E3D),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            )
+                          : GestureDetector(
+                              onTap: () => _showProfileDialog(context),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceAround,
-                                    children: [
-                                      _buildStatItem(
-                                        'Games Played',
-                                        (userStats?['games_played'] ?? 0)
-                                            .toString(),
+                                  Flexible(
+                                    child: Text(
+                                      'Welcome, ${userProfile?['username'] ?? 'Player'}!',
+                                      style: TextStyle(
+                                        color: Color(0xFF0B1E3D),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
                                       ),
-                                      _buildStatItem(
-                                        'Games Won',
-                                        '${userStats?['games_won'] ?? 0}',
-                                      ),
-                                      _buildStatItem(
-                                        'Total Score',
-                                        '${userStats?['total_score'] ?? 0}',
-                                      ),
-                                    ],
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  const SizedBox(height: 12),
+                                  if (userProfile?['country_flag'] != null) ...[
+                                    SizedBox(width: 8),
+                                    kIsWeb
+                                        ? Text(
+                                            userProfile!['country_flag']
+                                                .toString()
+                                                .toUpperCase(),
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF0B1E3D),
+                                            ),
+                                          )
+                                        : CountryFlag.fromCountryCode(
+                                            userProfile!['country_flag']
+                                                .toString()
+                                                .toUpperCase(),
+                                            theme: const ImageTheme(
+                                              height: 20,
+                                              width: 28,
+                                            ),
+                                          ),
+                                  ],
                                 ],
                               ),
-                      ),
+                            ),
                     ),
-                    const SizedBox(height: 40),
 
-                    // Play button
-                    ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : () async {
-                              await Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const GameBoard(),
+                    // Logout button
+                    IconButton(
+                      icon: _isLoggingOut
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF0B1E3D),
                                 ),
-                              );
-                              // Refresh stats after game ends
-                              await _loadUserData();
-                              return;
-                            },
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                      ),
-                      child: Container(
-                        width: 280,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF00F6FF,
-                              ).withValues(alpha: .7),
-                              blurRadius: 11,
-                              offset: const Offset(0, 0),
-                            ),
-                          ],
-                          color: _isLoading
-                              ? Color(0xFF0B1E3D).withValues(alpha: .6)
-                              : Color(0xFF0B1E3D),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _isLoading
-                                ? Color(0xFFFFA200).withValues(alpha: .6)
-                                : Color(0xFFFFA200),
-                            width: 3,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'PLAY GAME',
-                            style: TextStyle(
-                              color: Color(0xFFFFDD00),
-                              fontFamily: 'Acsioma',
-                              fontSize: 24,
-                            ),
-                          ),
-                        ),
-                      ),
+                              ),
+                            )
+                          : Icon(Icons.logout, color: Color(0xFF0B1E3D)),
+                      onPressed: _isLoggingOut ? null : _handleLogout,
                     ),
-                    const SizedBox(height: 20),
-                    // Additional buttons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildSecondaryButton(
-                          context,
-                          'Leaderboard',
-                          Icons.leaderboard,
-                          _isLoading
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const LeaderboardPage(),
-                                    ),
-                                  );
-                                },
-                        ),
-                        _buildSecondaryButton(
-                          context,
-                          'Settings',
-                          Icons.settings,
-                          _isLoading ? null : _navigateToSettings,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Game description
-                    Text(
-                      'Clear all safe tiles without hitting a mine. Build streaks to earn bonus points.',
-                      style: TextStyle(color: Color(0xFF0B1E3D), fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),
             ),
-          ),
+
+            // Scrollable content below
+            Expanded(
+              child: ResponsiveWrapper(
+                child: RefreshIndicator(
+                  onRefresh: _loadUserData,
+                  color: Color(0xFF0B1E3D),
+                  child: SingleChildScrollView(
+                    physics: AlwaysScrollableScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Game logo
+                          Image.asset(
+                            'assets/landingPageLogo.png',
+                            width: 200,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(height: 40),
+
+                          // Player stats card
+                          Card(
+                            color: Colors.white,
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: _isLoading
+                                  ? Center(
+                                      child: CircularProgressIndicator(
+                                        color: Color(0xFF0B1E3D),
+                                      ),
+                                    )
+                                  : Column(
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceAround,
+                                          children: [
+                                            _buildStatItem(
+                                              'Games Played',
+                                              (userStats?['games_played'] ?? 0)
+                                                  .toString(),
+                                            ),
+                                            _buildStatItem(
+                                              'Games Won',
+                                              '${userStats?['games_won'] ?? 0}',
+                                            ),
+                                            _buildStatItem(
+                                              'Total Score',
+                                              '${userStats?['total_score'] ?? 0}',
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+
+                          // Play button
+                          ClickButton(
+                            onPressed: _isLoading
+                                ? null
+                                : () async {
+                                    await Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => const GameBoard(),
+                                      ),
+                                    );
+                                    // Refresh stats after game ends
+                                    await _loadUserData();
+                                    return;
+                                  },
+                            style: ElevatedButton.styleFrom(
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                            ),
+                            child: Container(
+                              width: 280,
+                              height: 56,
+                              decoration: BoxDecoration(
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF00F6FF,
+                                    ).withValues(alpha: .7),
+                                    blurRadius: 11,
+                                    offset: const Offset(0, 0),
+                                  ),
+                                ],
+                                color: _isLoading
+                                    ? Color(0xFF0B1E3D).withValues(alpha: .6)
+                                    : Color(0xFF0B1E3D),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: _isLoading
+                                      ? Color(0xFFFFA200).withValues(alpha: .6)
+                                      : Color(0xFFFFA200),
+                                  width: 3,
+                                ),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  'PLAY GAME',
+                                  style: TextStyle(
+                                    color: Color(0xFFFFDD00),
+                                    fontFamily: 'Acsioma',
+                                    fontSize: 24,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Additional buttons
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildSecondaryButton(
+                                context,
+                                'Leaderboard',
+                                Icons.leaderboard,
+                                _isLoading
+                                    ? null
+                                    : () {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const LeaderboardPage(),
+                                          ),
+                                        );
+                                      },
+                              ),
+                              _buildSecondaryButton(
+                                context,
+                                'Settings',
+                                Icons.settings,
+                                _isLoading ? null : _navigateToSettings,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 40),
+
+                          // Game description
+                          Text(
+                            'Clear all safe tiles without hitting a mine. Build streaks to earn bonus points.',
+                            style: TextStyle(
+                              color: Color(0xFF0B1E3D),
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          const SizedBox(height: 12),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
