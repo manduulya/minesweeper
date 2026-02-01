@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Mine Master</string>
+    <string name="facebook_app_id">1582074613004510</string>
+    <string name="facebook_client_token">56aefb1170ff2802c7e12e5ceeb57d46</string>
+    <string name="fb_login_protocol_scheme">fb1582074613004510</string>
 </resources>

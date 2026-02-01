@@ -5,14 +5,7 @@ import 'dart:convert';
 import 'dart:async';
 import '../service_utils/api_client.dart';
 import '../services/settings_service.dart';
-
-class AccountNotFoundException implements Exception {}
-
-class WrongPasswordException implements Exception {}
-
-class ServerTimeoutException implements Exception {}
-
-class UnknownLoginException implements Exception {}
+import '../exceptions/app_exceptions.dart';
 
 // Authentication Service to manage login state
 class AuthService extends ChangeNotifier {
@@ -26,6 +19,7 @@ class AuthService extends ChangeNotifier {
   String? _userId;
   String? _countryFlag;
   bool _isLoggedIn = false;
+  bool _isAuthenticated = false;
 
   bool get isLoggedIn => _isLoggedIn;
   String? get token => _token;
@@ -33,6 +27,7 @@ class AuthService extends ChangeNotifier {
   String? get email => _email;
   String? get userId => _userId;
   String? get countryFlag => _countryFlag;
+  bool get isAuthenticated => _isAuthenticated;
 
   // Initialize auth state from stored preferences
   Future<void> initializeAuth() async {
@@ -56,6 +51,38 @@ class AuthService extends ChangeNotifier {
       _isLoggedIn = false;
       notifyListeners();
     }
+  }
+
+  Future<void> setUserData(
+    String username,
+    String token, {
+    String? email,
+    String? userId,
+    String? countryFlag,
+  }) async {
+    _username = username;
+    _token = token;
+    _email = email;
+    _userId = userId;
+    _countryFlag = countryFlag ?? 'international';
+    _isAuthenticated = true;
+    _isLoggedIn = true;
+
+    // Save to SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', true);
+    await prefs.setString('auth_token', token);
+    await prefs.setString('username', username);
+    if (email != null) await prefs.setString('email', email);
+    if (userId != null) await prefs.setString('userId', userId);
+    await prefs.setString('country_flag', _countryFlag!);
+
+    // Update SettingsService
+    final settingsService = SettingsService();
+    settingsService.setAuthToken(token);
+    settingsService.setCountryFlagFromAuth(_countryFlag!);
+
+    notifyListeners();
   }
 
   // Fetch user profile from API

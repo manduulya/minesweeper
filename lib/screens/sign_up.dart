@@ -7,6 +7,10 @@ import 'landing_page.dart';
 import '../services/api_service.dart';
 import '../service_utils/error_handler.dart';
 import '../service_utils/country_data.dart';
+import '../services/facebook_auth_service.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
+import '../main.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -16,6 +20,8 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final FacebookAuthService _facebookAuthService = FacebookAuthService();
+  bool _isFacebookLoading = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -37,6 +43,57 @@ class _SignUpPageState extends State<SignUpPage> {
     _passwordController.dispose();
     _retypePasswordController.dispose();
     super.dispose();
+  }
+  // Replace your _handleFacebookSignup method in sign_up.dart (lines 49-87) with this:
+
+  Future<void> _handleFacebookSignup() async {
+    setState(() {
+      _isFacebookLoading = true;
+    });
+
+    try {
+      // Get Facebook user data (ID, name, email only)
+      final facebookData = await _facebookAuthService.signInWithFacebook();
+
+      // Authenticate/Register with your backend
+      final result = await _apiService.loginWithFacebook(
+        facebookId: facebookData['facebook_id'],
+        name: facebookData['name'],
+        email: facebookData['email'],
+      );
+
+      if (!mounted) return;
+
+      // Update auth service with ALL user data
+      final authService = context.read<AuthService>();
+      await authService.setUserData(
+        result['user']['username'],
+        result['token'],
+        email: result['user']['email'],
+        userId: result['user']['id']?.toString(),
+        countryFlag: result['user']['country_flag'],
+      );
+
+      _errorHandler.showSuccess(
+        context,
+        'Welcome, ${result['user']['username']}!',
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SplashToAuthWrapper()),
+      );
+    } catch (error) {
+      if (mounted) {
+        _errorHandler.handleError(context, error);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isFacebookLoading = false;
+        });
+      }
+    }
   }
 
   bool _validateInputs() {
@@ -596,6 +653,75 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 24),
+
+                    // Facebook Signup button (matching your game's style)
+                    ClickButton(
+                      onPressed: (_isRegistering || _isFacebookLoading)
+                          ? null
+                          : _handleFacebookSignup,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      ),
+                      child: Container(
+                        width: 280,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF1877F2,
+                              ).withValues(alpha: 0.6), // Facebook blue glow
+                              blurRadius: 11,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
+                          color: (_isRegistering || _isFacebookLoading)
+                              ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                              : const Color(0xFF0B1E3D),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: (_isRegistering || _isFacebookLoading)
+                                ? const Color(0xFF1877F2).withValues(alpha: 0.6)
+                                : const Color(0xFF1877F2),
+                            width: 3,
+                          ),
+                        ),
+                        child: Center(
+                          child: _isFacebookLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.facebook,
+                                      color: Color(0xFFFFDD00),
+                                      size: 26,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'SIGNUP WITH FACEBOOK',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFDD00),
+                                        fontFamily: 'Acsioma',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
 
                     // Login link

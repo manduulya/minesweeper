@@ -3,10 +3,13 @@ import 'package:mine_master/widgets/click_button_widget.dart';
 import '../managers/responsive_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'sign_up.dart';
+import '../dialog_utils/forgot_password.dart';
 import '../services/api_service.dart';
 import '../service_utils/error_handler.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
+import '../exceptions/app_exceptions.dart';
+import '../services/facebook_auth_service.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -15,15 +18,11 @@ class LandingPage extends StatefulWidget {
   State<LandingPage> createState() => _LandingPageState();
 }
 
-class UserNotFoundException implements Exception {
-  final String message;
-  UserNotFoundException([this.message = 'User not found']);
-}
-
 class _LandingPageState extends State<LandingPage> {
-  final TextEditingController _usernameController =
-      TextEditingController(); // Changed from email to username
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final FacebookAuthService _facebookAuthService = FacebookAuthService();
+  bool _isFacebookLoading = false;
 
   // Server integration
   final ApiService _apiService = ApiService();
@@ -48,18 +47,14 @@ class _LandingPageState extends State<LandingPage> {
       final profile = await _apiService.getUserProfile();
 
       if (profile.isNotEmpty) {
-        // Valid profile → go to game
         _navigateToGame();
       } else {
         print('Empty profile received, staying on login page');
       }
     } on UserNotFoundException {
       print('User not found, staying on login page');
-      // maybe navigate to login/registration explicitly
-      // Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       print('Auth check failed: $e');
-      // stay on login page
     }
   }
 
@@ -67,6 +62,70 @@ class _LandingPageState extends State<LandingPage> {
     Navigator.of(
       context,
     ).pushReplacement(MaterialPageRoute(builder: (_) => SplashToAuthWrapper()));
+  }
+
+  Future<void> _handleFacebookLogin() async {
+    print('🟦 [Landing Page] Facebook login button pressed');
+
+    setState(() {
+      _isFacebookLoading = true;
+    });
+
+    try {
+      print('🟦 [Landing Page] Calling Facebook auth service...');
+      final facebookData = await _facebookAuthService.signInWithFacebook();
+      print('✅ [Landing Page] Got Facebook data, calling API...');
+
+      final result = await _apiService.loginWithFacebook(
+        facebookId: facebookData['facebook_id'],
+        name: facebookData['name'],
+        email: facebookData['email'],
+      );
+      print('✅ [Landing Page] API call successful');
+
+      if (!mounted) {
+        print('⚠️ [Landing Page] Widget unmounted, aborting');
+        return;
+      }
+
+      print('🟦 [Landing Page] Updating auth service...');
+      final authService = context.read<AuthService>();
+      await authService.setUserData(
+        result['user']['username'],
+        result['token'],
+        email: result['user']['email'],
+        userId: result['user']['id']?.toString(),
+        countryFlag: result['user']['country_flag'],
+      );
+      print('✅ [Landing Page] Auth service updated');
+
+      _errorHandler.showSuccess(
+        context,
+        'Welcome, ${result['user']['username']}!',
+      );
+
+      print('🟦 [Landing Page] Navigating to game...');
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const SplashToAuthWrapper()),
+      );
+      print('✅ [Landing Page] Navigation complete');
+    } catch (error) {
+      print('❌ [Landing Page] Error occurred: $error');
+      print('❌ [Landing Page] Error type: ${error.runtimeType}');
+      print('❌ [Landing Page] Stack trace: ${StackTrace.current}');
+
+      if (mounted) {
+        _errorHandler.handleError(context, error);
+      }
+    } finally {
+      if (mounted) {
+        print('🟦 [Landing Page] Setting loading to false');
+        setState(() {
+          _isFacebookLoading = false;
+        });
+      }
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -95,10 +154,12 @@ class _LandingPageState extends State<LandingPage> {
         context,
         MaterialPageRoute(builder: (_) => const SplashToAuthWrapper()),
       );
-    } on AccountNotFoundException {
-      _errorHandler.showError(context, 'Account not found. Please sign up.');
     } on WrongPasswordException {
+      // Handle wrong password first (more specific)
       _errorHandler.showError(context, 'Incorrect password. Try again.');
+    } on AccountNotFoundException {
+      // Then handle account not found
+      _errorHandler.showError(context, 'Account not found. Please sign up.');
     } on ServerTimeoutException {
       _errorHandler.showError(
         context,
@@ -116,31 +177,21 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Future<void> _handleForgotPassword() async {
-    if (_usernameController.text.isEmpty) {
-      _errorHandler.showError(
-        context,
-        'Please enter your username to reset password',
-      );
-      return;
-    }
-
-    // Show dialog for now (you can implement password reset later)
-    showDialog(
+    // Show the forgot password dialog
+    final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Password Reset'),
-        content: Text(
-          'Password reset functionality will be implemented soon.\n\n'
-          'For now, please contact support if you need to reset your password for username: ${_usernameController.text}',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('OK'),
-          ),
-        ],
+      barrierDismissible: !_isLoading,
+      builder: (context) => ForgotPasswordDialog(
+        initialUsername: _usernameController.text.trim().isNotEmpty
+            ? _usernameController.text.trim()
+            : null,
       ),
     );
+
+    // If password was reset successfully, clear the password field
+    if (result == true && mounted) {
+      _passwordController.clear();
+    }
   }
 
   @override
@@ -172,7 +223,7 @@ class _LandingPageState extends State<LandingPage> {
                     ),
                     const SizedBox(height: 40),
 
-                    // Username input field (changed from email)
+                    // Username input field
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.white,
@@ -254,8 +305,6 @@ class _LandingPageState extends State<LandingPage> {
                             Icons.lock,
                             color: Color(0xFF0B1E3D),
                           ),
-
-                          // 👁️ Eye icon
                           suffixIcon: IconButton(
                             icon: Icon(
                               _passwordVisible
@@ -269,7 +318,6 @@ class _LandingPageState extends State<LandingPage> {
                               });
                             },
                           ),
-
                           filled: true,
                           fillColor: Colors.white,
                           border: OutlineInputBorder(
@@ -367,6 +415,74 @@ class _LandingPageState extends State<LandingPage> {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 24),
+
+                    ClickButton(
+                      onPressed: (_isLoading || _isFacebookLoading)
+                          ? null
+                          : _handleFacebookLogin,
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                      ),
+                      child: Container(
+                        width: 280,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(
+                                0xFF1877F2,
+                              ).withValues(alpha: 0.6), // Facebook blue glow
+                              blurRadius: 11,
+                              offset: const Offset(0, 0),
+                            ),
+                          ],
+                          color: (_isLoading || _isFacebookLoading)
+                              ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                              : const Color(0xFF0B1E3D),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: (_isLoading || _isFacebookLoading)
+                                ? const Color(0xFF1877F2).withValues(alpha: 0.6)
+                                : const Color(0xFF1877F2),
+                            width: 3,
+                          ),
+                        ),
+                        child: Center(
+                          child: _isFacebookLoading
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                )
+                              : Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: const [
+                                    Icon(
+                                      Icons.facebook,
+                                      color: Color(0xFFFFDD00),
+                                      size: 26,
+                                    ),
+                                    SizedBox(width: 12),
+                                    Text(
+                                      'LOGIN WITH FACEBOOK',
+                                      style: TextStyle(
+                                        color: Color(0xFFFFDD00),
+                                        fontFamily: 'Acsioma',
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ),
+
                     const SizedBox(height: 24),
 
                     // Sign up text with link
