@@ -31,31 +31,10 @@ class _LandingPageState extends State<LandingPage> {
   bool _isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
-  }
-
-  Future<void> _checkExistingAuth() async {
-    try {
-      final profile = await _apiService.getUserProfile();
-
-      if (profile.isNotEmpty) {
-        _navigateToGame();
-      } else {
-        print('Empty profile received, staying on login page');
-      }
-    } on UserNotFoundException {
-      print('User not found, staying on login page');
-    } catch (e) {
-      print('Auth check failed: $e');
-    }
   }
 
   void _navigateToGame() {
@@ -65,30 +44,19 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Future<void> _handleFacebookLogin() async {
-    print('🟦 [Landing Page] Facebook login button pressed');
-
-    setState(() {
-      _isFacebookLoading = true;
-    });
+    setState(() => _isFacebookLoading = true);
 
     try {
-      print('🟦 [Landing Page] Calling Facebook auth service...');
       final facebookData = await _facebookAuthService.signInWithFacebook();
-      print('✅ [Landing Page] Got Facebook data, calling API...');
 
       final result = await _apiService.loginWithFacebook(
         facebookId: facebookData['facebook_id'],
         name: facebookData['name'],
         email: facebookData['email'],
       );
-      print('✅ [Landing Page] API call successful');
 
-      if (!mounted) {
-        print('⚠️ [Landing Page] Widget unmounted, aborting');
-        return;
-      }
+      if (!mounted) return;
 
-      print('🟦 [Landing Page] Updating auth service...');
       final authService = context.read<AuthService>();
       await authService.setUserData(
         result['user']['username'],
@@ -97,34 +65,20 @@ class _LandingPageState extends State<LandingPage> {
         userId: result['user']['id']?.toString(),
         countryFlag: result['user']['country_flag'],
       );
-      print('✅ [Landing Page] Auth service updated');
 
       _errorHandler.showSuccess(
         context,
         'Welcome, ${result['user']['username']}!',
       );
 
-      print('🟦 [Landing Page] Navigating to game...');
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const SplashToAuthWrapper()),
       );
-      print('✅ [Landing Page] Navigation complete');
     } catch (error) {
-      print('❌ [Landing Page] Error occurred: $error');
-      print('❌ [Landing Page] Error type: ${error.runtimeType}');
-      print('❌ [Landing Page] Stack trace: ${StackTrace.current}');
-
-      if (mounted) {
-        _errorHandler.handleError(context, error);
-      }
+      if (mounted) _errorHandler.handleError(context, error);
     } finally {
-      if (mounted) {
-        print('🟦 [Landing Page] Setting loading to false');
-        setState(() {
-          _isFacebookLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isFacebookLoading = false);
     }
   }
 
@@ -134,9 +88,7 @@ class _LandingPageState extends State<LandingPage> {
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       final authService = context.read<AuthService>();
@@ -155,10 +107,8 @@ class _LandingPageState extends State<LandingPage> {
         MaterialPageRoute(builder: (_) => const SplashToAuthWrapper()),
       );
     } on WrongPasswordException {
-      // Handle wrong password first (more specific)
       _errorHandler.showError(context, 'Incorrect password. Try again.');
     } on AccountNotFoundException {
-      // Then handle account not found
       _errorHandler.showError(context, 'Account not found. Please sign up.');
     } on ServerTimeoutException {
       _errorHandler.showError(
@@ -170,14 +120,11 @@ class _LandingPageState extends State<LandingPage> {
     } catch (error) {
       _errorHandler.handleError(context, error);
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _handleForgotPassword() async {
-    // Show the forgot password dialog
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: !_isLoading,
@@ -188,356 +135,394 @@ class _LandingPageState extends State<LandingPage> {
       ),
     );
 
-    // If password was reset successfully, clear the password field
     if (result == true && mounted) {
       _passwordController.clear();
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFCF4E4),
-      body: SafeArea(
-        child: ResponsiveWrapper(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // Welcome title
-                    Image.asset(
-                      'assets/WelcomeTitle.png',
-                      width: 300,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 16),
+  // ✅ Title widget with glow/shadow so it’s readable on dark background
+  Widget _buildTitle() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: const [
+        Text(
+          'Welcome to',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 40,
+            height: 0.9, // 👈 tighten line box
+            color: Colors.white,
+            fontFamily: 'Agatha',
+            shadows: [
+              Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 2)),
+              Shadow(
+                color: Color(0xFF00F6FF),
+                blurRadius: 30,
+                offset: Offset(0, 0),
+              ),
+            ],
+          ),
+        ),
+        Text(
+          'MINE MASTER',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 42,
+            height: 0.9,
+            letterSpacing: 2,
+            color: Color(0xFFFFDD00),
+            fontFamily: 'Acsioma',
+            shadows: [
+              Shadow(color: Colors.black, blurRadius: 14, offset: Offset(0, 3)),
+              Shadow(
+                color: Color(0xFFFFA200),
+                blurRadius: 22,
+                offset: Offset(0, 0),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-                    // Minesweeper logo
-                    Image.asset(
-                      'assets/landingPageLogo.png',
-                      width: 200,
-                      fit: BoxFit.contain,
-                    ),
-                    const SizedBox(height: 40),
+  Widget _buildLoginContent() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildTitle(),
+        const SizedBox(height: 18),
 
-                    // Username input field
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _usernameController,
-                        enabled: !_isLoading,
-                        decoration: InputDecoration(
-                          hintText: 'Username',
-                          hintStyle: TextStyle(
-                            color: const Color(
-                              0xFF0B1E3D,
-                            ).withValues(alpha: 0.6),
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.person,
-                            color: Color(0xFF0B1E3D),
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF0B1E3D),
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(color: Color(0xFF0B1E3D)),
-                      ),
-                    ),
+        // Logo
+        Image.asset('assets/appicon.png', width: 200, fit: BoxFit.contain),
+        const SizedBox(height: 30),
 
-                    const SizedBox(height: 16),
+        // Username field
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _usernameController,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              hintText: 'Username',
+              hintStyle: TextStyle(
+                color: const Color(0xFF0B1E3D).withValues(alpha: 0.55),
+              ),
+              prefixIcon: const Icon(Icons.person, color: Color(0xFF0B1E3D)),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+            style: const TextStyle(color: Color(0xFF0B1E3D)),
+          ),
+        ),
 
-                    // Password input field
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: TextField(
-                        controller: _passwordController,
-                        obscureText: !_passwordVisible,
-                        enabled: !_isLoading,
-                        decoration: InputDecoration(
-                          hintText: 'Password',
-                          hintStyle: TextStyle(
-                            color: const Color(
-                              0xFF0B1E3D,
-                            ).withValues(alpha: 0.6),
-                          ),
-                          prefixIcon: const Icon(
-                            Icons.lock,
-                            color: Color(0xFF0B1E3D),
-                          ),
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _passwordVisible
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: const Color(0xFF0B1E3D),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _passwordVisible = !_passwordVisible;
-                              });
-                            },
-                          ),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: const BorderSide(
-                              color: Color(0xFF0B1E3D),
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 16,
-                          ),
-                        ),
-                        style: const TextStyle(color: Color(0xFF0B1E3D)),
-                      ),
-                    ),
+        const SizedBox(height: 16),
 
-                    const SizedBox(height: 16),
-
-                    // Forgot password link
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _isLoading ? null : _handleForgotPassword,
-                        child: const Text(
-                          'Forgot password?',
-                          style: TextStyle(
-                            color: Color(0xFF0B1E3D),
-                            fontSize: 14,
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Login button
-                    ClickButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                      ),
-                      child: Container(
-                        width: 280,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF00F6FF,
-                              ).withValues(alpha: 0.7),
-                              blurRadius: 11,
-                              offset: const Offset(0, 0),
-                            ),
-                          ],
-                          color: _isLoading
-                              ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
-                              : const Color(0xFF0B1E3D),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _isLoading
-                                ? const Color(0xFFFFA200).withValues(alpha: 0.6)
-                                : const Color(0xFFFFA200),
-                            width: 3,
-                          ),
-                        ),
-                        child: Center(
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                )
-                              : const Text(
-                                  'LOGIN',
-                                  style: TextStyle(
-                                    color: Color(0xFFFFDD00),
-                                    fontFamily: 'Acsioma',
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    ClickButton(
-                      onPressed: (_isLoading || _isFacebookLoading)
-                          ? null
-                          : _handleFacebookLogin,
-                      style: ElevatedButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                      ),
-                      child: Container(
-                        width: 280,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(
-                                0xFF1877F2,
-                              ).withValues(alpha: 0.6), // Facebook blue glow
-                              blurRadius: 11,
-                              offset: const Offset(0, 0),
-                            ),
-                          ],
-                          color: (_isLoading || _isFacebookLoading)
-                              ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
-                              : const Color(0xFF0B1E3D),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: (_isLoading || _isFacebookLoading)
-                                ? const Color(0xFF1877F2).withValues(alpha: 0.6)
-                                : const Color(0xFF1877F2),
-                            width: 3,
-                          ),
-                        ),
-                        child: Center(
-                          child: _isFacebookLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: const [
-                                    Icon(
-                                      Icons.facebook,
-                                      color: Color(0xFFFFDD00),
-                                      size: 26,
-                                    ),
-                                    SizedBox(width: 12),
-                                    Text(
-                                      'LOGIN WITH FACEBOOK',
-                                      style: TextStyle(
-                                        color: Color(0xFFFFDD00),
-                                        fontFamily: 'Acsioma',
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Sign up text with link
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text(
-                          "Don't have an account? ",
-                          style: TextStyle(
-                            color: Color(0xFF0B1E3D),
-                            fontSize: 14,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: _isLoading
-                              ? null
-                              : () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const SignUpPage(),
-                                    ),
-                                  );
-                                },
-                          style: TextButton.styleFrom(
-                            padding: EdgeInsets.zero,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'Sign up',
-                            style: TextStyle(
-                              color: Color(0xFFA21212),
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-
-                    // Game description
-                    const Text(
-                      'Clear all safe tiles without hitting a mine. Build streaks to earn bonus points.',
-                      style: TextStyle(color: Color(0xFF0B1E3D), fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+        // Password field
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.18),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: TextField(
+            controller: _passwordController,
+            obscureText: !_passwordVisible,
+            enabled: !_isLoading,
+            decoration: InputDecoration(
+              hintText: 'Password',
+              hintStyle: TextStyle(
+                color: const Color(0xFF0B1E3D).withValues(alpha: 0.55),
+              ),
+              prefixIcon: const Icon(Icons.lock, color: Color(0xFF0B1E3D)),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                  color: const Color(0xFF0B1E3D),
                 ),
+                onPressed: () =>
+                    setState(() => _passwordVisible = !_passwordVisible),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 16,
+              ),
+            ),
+            style: const TextStyle(color: Color(0xFF0B1E3D)),
+          ),
+        ),
+
+        const SizedBox(height: 10),
+
+        // Forgot password (make it readable on dark bg)
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _isLoading ? null : _handleForgotPassword,
+            child: Text(
+              'Forgot password?',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 14,
+                decoration: TextDecoration.underline,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black,
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
             ),
           ),
         ),
+
+        const SizedBox(height: 18),
+
+        // Login button
+        ClickButton(
+          onPressed: _isLoading ? null : _handleLogin,
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+          ),
+          child: Container(
+            width: 280,
+            height: 56,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF00F6FF).withValues(alpha: 0.45),
+                  blurRadius: 10,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+              color: _isLoading
+                  ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                  : const Color(0xFF0B1E3D),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _isLoading
+                    ? const Color(0xFFFFA200).withValues(alpha: 0.6)
+                    : const Color(0xFFFFA200),
+                width: 3,
+              ),
+            ),
+            child: Center(
+              child: _isLoading
+                  ? const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    )
+                  : const Text(
+                      'LOGIN',
+                      style: TextStyle(
+                        color: Color(0xFFFFDD00),
+                        fontFamily: 'Acsioma',
+                        fontSize: 24,
+                        fontWeight: FontWeight.normal,
+                      ),
+                    ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        // Facebook login
+        ClickButton(
+          onPressed: (_isLoading || _isFacebookLoading)
+              ? null
+              : _handleFacebookLogin,
+          style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+          ),
+          child: Container(
+            width: 280,
+            height: 56,
+            decoration: BoxDecoration(
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF1877F2).withValues(alpha: 0.45),
+                  blurRadius: 10,
+                  offset: const Offset(0, 0),
+                ),
+              ],
+              color: (_isLoading || _isFacebookLoading)
+                  ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                  : const Color(0xFF0B1E3D),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: const Color(0xFFFFA200).withValues(alpha: 0.85),
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: _isFacebookLoading
+                  ? const CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Icon(
+                          Icons.facebook,
+                          color: Color(0xFFFFDD00),
+                          size: 26,
+                        ),
+                        SizedBox(width: 12),
+                        Text(
+                          'LOGIN WITH FACEBOOK',
+                          style: TextStyle(
+                            color: Color(0xFFFFDD00),
+                            fontFamily: 'Acsioma',
+                            fontSize: 18,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 18),
+
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              "Don't have an account? ",
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.85),
+                fontSize: 14,
+                shadows: const [
+                  Shadow(
+                    color: Colors.black,
+                    blurRadius: 10,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+            TextButton(
+              onPressed: _isLoading
+                  ? null
+                  : () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const SignUpPage()),
+                      );
+                    },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Sign up',
+                style: TextStyle(
+                  color: Color(0xFFFFDD00),
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  decoration: TextDecoration.underline,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black,
+                      blurRadius: 10,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        const SizedBox(height: 18),
+
+        Text(
+          'Clear all safe tiles without hitting a mine.\nBuild streaks to earn bonus points.',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.78),
+            fontSize: 14,
+            shadows: const [
+              Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 2)),
+            ],
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/background1.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
+
+          // Keep it, but don’t crush the background too much
+          Container(color: Colors.black.withValues(alpha: 0.25)),
+
+          SafeArea(
+            child: ResponsiveWrapper(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildLoginContent(),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

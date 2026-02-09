@@ -1,5 +1,4 @@
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
-import '../exceptions/app_exceptions.dart';
 
 class FacebookAuthService {
   final FacebookAuth _facebookAuth = FacebookAuth.instance;
@@ -37,7 +36,7 @@ class FacebookAuthService {
         print('  - Name: ${userData['name']}');
         print('  - Email: ${userData['email'] ?? 'NO EMAIL'}');
 
-        final userData_result = {
+        final userdataResult = {
           'facebook_id': userData['id'],
           'name': userData['name'],
           'email': userData['email'] ?? '',
@@ -45,7 +44,7 @@ class FacebookAuthService {
         };
 
         print('📘 [FB Auth] Returning user data to app');
-        return userData_result;
+        return userdataResult;
       } else if (result.status == LoginStatus.cancelled) {
         print('⚠️ [FB Auth] User cancelled login');
         throw Exception('Facebook login cancelled by user');

@@ -37,16 +37,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadUserData() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
       // Fetch fresh profile from AuthService
       final authService = context.read<AuthService>();
       await authService.fetchUserProfile();
 
-      // Then fetch profile and stats from API
       final results = await Future.wait([
         _apiService.getUserProfile(),
         _apiService.getUserStats(),
@@ -58,9 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
 
       if (e.toString().contains('401') || e.toString().contains('403')) {
         _handleLogout();
@@ -71,19 +66,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _handleLogout() async {
-    setState(() {
-      _isLoggingOut = true;
-    });
+    setState(() => _isLoggingOut = true);
 
     try {
-      // Logout from AuthService
       final authService = context.read<AuthService>();
       await authService.logout();
 
-      // Clear the stored token
       await _apiService.clearToken();
 
-      // Navigate back to landing page
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const LandingPage()),
@@ -91,9 +81,7 @@ class _HomeScreenState extends State<HomeScreen> {
         );
       }
     } catch (e) {
-      setState(() {
-        _isLoggingOut = false;
-      });
+      setState(() => _isLoggingOut = false);
       _errorHandler.handleError(context, e);
     }
   }
@@ -105,7 +93,7 @@ class _HomeScreenState extends State<HomeScreen> {
       builder: (context) => AlertDialog(
         title: Row(
           children: [
-            Text('Profile'),
+            const Text('Profile'),
             const Spacer(),
             if (userProfile!['country_flag'] != null)
               kIsWeb
@@ -136,7 +124,7 @@ class _HomeScreenState extends State<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('Close'),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -154,281 +142,335 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _navigateToSettings() async {
-    // Navigate to settings and wait for it to close
     await Navigator.of(
       context,
     ).push(MaterialPageRoute(builder: (_) => const SettingsPage()));
-
-    // Refresh user data after returning from settings
-    print('🔄 Returned from settings, refreshing profile...');
     await _loadUserData();
+  }
+
+  // ✅ NEW: Dark background like loading/landing
+  Widget _buildBackground() {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        Image.asset(
+          'assets/background1.png',
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+        ),
+        // gentle dark overlay so content pops
+        Container(color: Colors.black.withValues(alpha: 0.25)),
+      ],
+    );
+  }
+
+  // ✅ NEW: Make header readable on dark bg (white + shadow)
+  Widget _buildHeaderText(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.bold,
+        fontSize: 16,
+        shadows: [
+          Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 2)),
+        ],
+      ),
+      overflow: TextOverflow.ellipsis,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFCF4E4),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Fixed Header at top
-            ResponsiveWrapper(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 16,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Welcome message with flag
-                    Expanded(
-                      child: _isLoading
-                          ? Text(
-                              'Loading...',
-                              style: TextStyle(
-                                color: Color(0xFF0B1E3D),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            )
-                          : GestureDetector(
-                              onTap: () => _showProfileDialog(context),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'Welcome, ${userProfile?['username'] ?? 'Player'}!',
-                                      style: TextStyle(
-                                        color: Color(0xFF0B1E3D),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
+      // ✅ removed beige background, now use loading-style background
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildBackground(),
+
+          SafeArea(
+            child: Column(
+              children: [
+                // Header
+                ResponsiveWrapper(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: _isLoading
+                              ? _buildHeaderText('Loading...')
+                              : GestureDetector(
+                                  onTap: () => _showProfileDialog(context),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Flexible(
+                                        child: _buildHeaderText(
+                                          'Welcome, ${userProfile?['username'] ?? 'Player'}!',
+                                        ),
                                       ),
-                                      overflow: TextOverflow.ellipsis,
+                                      if (userProfile?['country_flag'] !=
+                                          null) ...[
+                                        const SizedBox(width: 8),
+                                        kIsWeb
+                                            ? Text(
+                                                userProfile!['country_flag']
+                                                    .toString()
+                                                    .toUpperCase(),
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  shadows: [
+                                                    Shadow(
+                                                      color: Colors.black,
+                                                      blurRadius: 10,
+                                                      offset: Offset(0, 2),
+                                                    ),
+                                                  ],
+                                                ),
+                                              )
+                                            : CountryFlag.fromCountryCode(
+                                                userProfile!['country_flag']
+                                                    .toString()
+                                                    .toUpperCase(),
+                                                theme: const ImageTheme(
+                                                  height: 20,
+                                                  width: 28,
+                                                ),
+                                              ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                        ),
+
+                        IconButton(
+                          icon: _isLoggingOut
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
                                     ),
                                   ),
-                                  if (userProfile?['country_flag'] != null) ...[
-                                    SizedBox(width: 8),
-                                    kIsWeb
-                                        ? Text(
-                                            userProfile!['country_flag']
-                                                .toString()
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF0B1E3D),
-                                            ),
-                                          )
-                                        : CountryFlag.fromCountryCode(
-                                            userProfile!['country_flag']
-                                                .toString()
-                                                .toUpperCase(),
-                                            theme: const ImageTheme(
-                                              height: 20,
-                                              width: 28,
-                                            ),
-                                          ),
-                                  ],
-                                ],
-                              ),
-                            ),
+                                )
+                              : const Icon(Icons.logout, color: Colors.white),
+                          onPressed: _isLoggingOut ? null : _handleLogout,
+                        ),
+                      ],
                     ),
-
-                    // Logout button
-                    IconButton(
-                      icon: _isLoggingOut
-                          ? SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF0B1E3D),
-                                ),
-                              ),
-                            )
-                          : Icon(Icons.logout, color: Color(0xFF0B1E3D)),
-                      onPressed: _isLoggingOut ? null : _handleLogout,
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
 
-            // Scrollable content below
-            Expanded(
-              child: ResponsiveWrapper(
-                child: RefreshIndicator(
-                  onRefresh: _loadUserData,
-                  color: Color(0xFF0B1E3D),
-                  child: SingleChildScrollView(
-                    physics: AlwaysScrollableScrollPhysics(),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Game logo
-                          Image.asset(
-                            'assets/landingPageLogo.png',
-                            width: 200,
-                            fit: BoxFit.contain,
-                          ),
-                          const SizedBox(height: 40),
+                // Scrollable content
+                Expanded(
+                  child: ResponsiveWrapper(
+                    child: RefreshIndicator(
+                      onRefresh: _loadUserData,
+                      color: const Color(0xFFFFDD00),
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              // Logo
+                              Image.asset(
+                                'assets/appicon.png',
+                                width: 200,
+                                fit: BoxFit.contain,
+                              ),
+                              const SizedBox(height: 28),
 
-                          // Player stats card
-                          Card(
-                            color: Colors.white,
-                            elevation: 4,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(20),
-                              child: _isLoading
-                                  ? Center(
-                                      child: CircularProgressIndicator(
-                                        color: Color(0xFF0B1E3D),
-                                      ),
-                                    )
-                                  : Column(
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceAround,
+                              // Stats card (keep light for readability)
+                              Card(
+                                color: Colors.white,
+                                elevation: 6,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(20),
+                                  child: _isLoading
+                                      ? const Center(
+                                          child: CircularProgressIndicator(
+                                            color: Color(0xFF0B1E3D),
+                                          ),
+                                        )
+                                      : Column(
                                           children: [
-                                            _buildStatItem(
-                                              'Games Played',
-                                              (userStats?['games_played'] ?? 0)
-                                                  .toString(),
+                                            Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.spaceAround,
+                                              children: [
+                                                _buildStatItem(
+                                                  'Games Played',
+                                                  (userStats?['games_played'] ??
+                                                          0)
+                                                      .toString(),
+                                                ),
+                                                _buildStatItem(
+                                                  'Games Won',
+                                                  '${userStats?['games_won'] ?? 0}',
+                                                ),
+                                                _buildStatItem(
+                                                  'Total Score',
+                                                  '${userStats?['total_score'] ?? 0}',
+                                                ),
+                                              ],
                                             ),
-                                            _buildStatItem(
-                                              'Games Won',
-                                              '${userStats?['games_won'] ?? 0}',
-                                            ),
-                                            _buildStatItem(
-                                              'Total Score',
-                                              '${userStats?['total_score'] ?? 0}',
-                                            ),
+                                            const SizedBox(height: 12),
                                           ],
                                         ),
-                                        const SizedBox(height: 12),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                          const SizedBox(height: 40),
+                                ),
+                              ),
+                              const SizedBox(height: 28),
 
-                          // Play button
-                          ClickButton(
-                            onPressed: _isLoading
-                                ? null
-                                : () async {
-                                    await Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder: (_) => const GameBoard(),
-                                      ),
-                                    );
-                                    // Refresh stats after game ends
-                                    await _loadUserData();
-                                    return;
-                                  },
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                            ),
-                            child: Container(
-                              width: 280,
-                              height: 56,
-                              decoration: BoxDecoration(
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: const Color(
-                                      0xFF00F6FF,
-                                    ).withValues(alpha: .7),
-                                    blurRadius: 11,
-                                    offset: const Offset(0, 0),
-                                  ),
-                                ],
-                                color: _isLoading
-                                    ? Color(0xFF0B1E3D).withValues(alpha: .6)
-                                    : Color(0xFF0B1E3D),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: _isLoading
-                                      ? Color(0xFFFFA200).withValues(alpha: .6)
-                                      : Color(0xFFFFA200),
-                                  width: 3,
-                                ),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  'PLAY GAME',
-                                  style: TextStyle(
-                                    color: Color(0xFFFFDD00),
-                                    fontFamily: 'Acsioma',
-                                    fontSize: 24,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                          // Additional buttons
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildSecondaryButton(
-                                context,
-                                'Leaderboard',
-                                Icons.leaderboard,
-                                _isLoading
+                              // ✅ UPDATED: Play button uses real text + bold + centered
+                              ClickButton(
+                                onPressed: _isLoading
                                     ? null
-                                    : () {
-                                        Navigator.of(context).push(
+                                    : () async {
+                                        await Navigator.of(context).push(
                                           MaterialPageRoute(
-                                            builder: (_) =>
-                                                const LeaderboardPage(),
+                                            builder: (_) => const GameBoard(),
                                           ),
                                         );
+                                        await _loadUserData();
                                       },
+                                style: ElevatedButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                ),
+                                child: Container(
+                                  width: 280,
+                                  height: 56,
+                                  decoration: BoxDecoration(
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(
+                                          0xFF00F6FF,
+                                        ).withValues(alpha: 0.45),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 0),
+                                      ),
+                                    ],
+                                    color: _isLoading
+                                        ? const Color(
+                                            0xFF0B1E3D,
+                                          ).withValues(alpha: 0.6)
+                                        : const Color(0xFF0B1E3D),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: _isLoading
+                                          ? const Color(
+                                              0xFFFFA200,
+                                            ).withValues(alpha: 0.6)
+                                          : const Color(0xFFFFA200),
+                                      width: 3,
+                                    ),
+                                  ),
+                                  child: Center(
+                                    child: _isLoading
+                                        ? const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          )
+                                        : const Text(
+                                            'PLAY GAME',
+                                            style: TextStyle(
+                                              color: Color(0xFFFFDD00),
+                                              fontFamily: 'Acsioma',
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.normal,
+                                              letterSpacing: 1,
+                                              shadows: [
+                                                Shadow(
+                                                  color: Colors.black,
+                                                  blurRadius: 10,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                  ),
+                                ),
                               ),
-                              _buildSecondaryButton(
-                                context,
-                                'Settings',
-                                Icons.settings,
-                                _isLoading ? null : _navigateToSettings,
+                              const SizedBox(height: 16),
+
+                              // Secondary buttons
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  _buildSecondaryButton(
+                                    context,
+                                    'Leaderboard',
+                                    Icons.leaderboard,
+                                    _isLoading
+                                        ? null
+                                        : () {
+                                            Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const LeaderboardPage(),
+                                              ),
+                                            );
+                                          },
+                                  ),
+                                  _buildSecondaryButton(
+                                    context,
+                                    'Settings',
+                                    Icons.settings,
+                                    _isLoading ? null : _navigateToSettings,
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: 28),
+
+                              // ✅ UPDATED: readable description on dark bg
+                              Text(
+                                'Clear all safe tiles without hitting a mine.\nBuild streaks to earn bonus points.',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.78),
+                                  fontSize: 14,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Colors.black,
+                                      blurRadius: 10,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+
+                              const SizedBox(height: 12),
                             ],
                           ),
-                          const SizedBox(height: 40),
-
-                          // Game description
-                          Text(
-                            'Clear all safe tiles without hitting a mine. Build streaks to earn bonus points.',
-                            style: TextStyle(
-                              color: Color(0xFF0B1E3D),
-                              fontSize: 14,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-
-                          const SizedBox(height: 12),
-                        ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -438,7 +480,7 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           value,
-          style: TextStyle(
+          style: const TextStyle(
             color: Color(0xFF0B1E3D),
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -447,7 +489,7 @@ class _HomeScreenState extends State<HomeScreen> {
         Text(
           label,
           style: TextStyle(
-            color: Color(0xFF0B1E3D).withValues(alpha: .7),
+            color: const Color(0xFF0B1E3D).withValues(alpha: 0.7),
             fontSize: 11,
           ),
           textAlign: TextAlign.center,
@@ -464,23 +506,29 @@ class _HomeScreenState extends State<HomeScreen> {
   ) {
     return ElevatedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, color: Color(0xFF0B1E3D)),
-      label: Text(label, style: TextStyle(color: Color(0xFF0B1E3D))),
+      icon: Icon(icon, color: const Color(0xFF0B1E3D)),
+      label: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF0B1E3D),
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: onPressed != null
             ? Colors.white
             : Colors.grey.shade300,
-        foregroundColor: Color(0xFF0B1E3D),
+        foregroundColor: const Color(0xFF0B1E3D),
         elevation: onPressed != null ? 2 : 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(10),
           side: BorderSide(
             color: onPressed != null
-                ? Color(0xFF0B1E3D).withValues(alpha: .3)
-                : Colors.grey.withValues(alpha: .3),
+                ? const Color(0xFF0B1E3D).withValues(alpha: 0.25)
+                : Colors.grey.withValues(alpha: 0.3),
           ),
         ),
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       ),
     );
   }

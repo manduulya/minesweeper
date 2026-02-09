@@ -86,6 +86,7 @@ flutter:
     - assets/streakIcon.png
     - assets/sounds/
     - assets/levels/levels.json
+    - assets/background1.png
   
   fonts: 
     - family: Acsioma
@@ -94,6 +95,9 @@ flutter:
     - family: Topaz 
       fonts:
         - asset: assets/fonts/Mogul-Topaz.ttf
+    - family: Agatha
+      fonts:
+        - asset: assets/fonts/Mogul-Agatha-Modern.ttf
 
 
   # To add assets to your application, add an assets section, like this:

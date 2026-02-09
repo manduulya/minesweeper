@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'screens/animated_splash.dart';
+// import 'screens/animated_splash.dart';
+import 'screens/loading.dart';
 import 'services/auth_service.dart';
 import 'screens/landing_page.dart';
 import 'screens/home.dart';

@@ -10,7 +10,7 @@ class ApiConstants {
   static const String production = 'https://your-domain.com/api';
 
   // Current environment - change this based on your setup
-  static const String baseUrl = localAndroidEmulator; // Change as needed
+  static const String baseUrl = localiOSSimulator; // Change as needed
 
   // Other constants
   static const Duration requestTimeout = Duration(seconds: 30);

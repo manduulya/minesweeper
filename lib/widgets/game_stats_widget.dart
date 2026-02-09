@@ -30,7 +30,7 @@ class GameStatsWidget extends StatelessWidget {
           _buildStatItem(
             context: context,
             scale: scale1,
-            icon: 'assets/bombRevealed.png',
+            icon: 'assets/appicon.png',
             value: remainingFlags,
           ),
           _buildStatItem(
@@ -62,14 +62,15 @@ class GameStatsWidget extends StatelessWidget {
           width: 60,
           child: Row(
             children: [
-              Image.asset(icon, width: 24, height: 24),
+              Image.asset(icon, width: 28, height: 28),
               const SizedBox(width: 4),
               Text(
                 '$value',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
+                  color: Color.fromARGB(255, 255, 228, 174),
+                  fontFamily: 'Acsioma',
                   fontSize: 20,
-                  color: const Color(0xFF1B2844),
+                  fontWeight: FontWeight.normal,
                 ),
               ),
             ],
@@ -91,7 +92,7 @@ class GameStatsWidget extends StatelessWidget {
           width: 60,
           child: Row(
             children: [
-              Image.asset('assets/hintButton.png', width: 24, height: 24),
+              Image.asset('assets/hintButton.png', width: 28, height: 28),
               const SizedBox(width: 4),
               SizedBox(
                 height: 40,
@@ -102,9 +103,10 @@ class GameStatsWidget extends StatelessWidget {
                     Text(
                       '$hintCount',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
+                        color: Color.fromARGB(255, 255, 228, 174),
+                        fontFamily: 'Acsioma',
                         fontSize: 20,
-                        color: const Color(0xFF1B2844),
+                        fontWeight: FontWeight.normal,
                       ),
                     ),
                     if (showHintDecrease)
