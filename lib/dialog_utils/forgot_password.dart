@@ -97,8 +97,8 @@ class _ForgotPasswordDialogState extends State<ForgotPasswordDialog> {
     try {
       // Call API to reset password
       await _apiService.resetPassword(
-        username: _usernameController.text.trim(),
-        email: _emailController.text.trim(),
+        username: _usernameController.text.trim().toLowerCase(),
+        email: _emailController.text.trim().toLowerCase(),
         newPassword: _newPasswordController.text,
       );
 

@@ -93,7 +93,7 @@ class _LandingPageState extends State<LandingPage> {
     try {
       final authService = context.read<AuthService>();
       await authService.login(
-        _usernameController.text.trim(),
+        _usernameController.text.trim().toLowerCase(),
         _passwordController.text,
       );
 
@@ -129,8 +129,9 @@ class _LandingPageState extends State<LandingPage> {
       context: context,
       barrierDismissible: !_isLoading,
       builder: (context) => ForgotPasswordDialog(
-        initialUsername: _usernameController.text.trim().isNotEmpty
-            ? _usernameController.text.trim()
+        initialUsername:
+            _usernameController.text.trim().toLowerCase().isNotEmpty
+            ? _usernameController.text.trim().toLowerCase()
             : null,
       ),
     );
@@ -149,7 +150,7 @@ class _LandingPageState extends State<LandingPage> {
           'Welcome to',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 40,
+            fontSize: 30,
             height: 0.9, // 👈 tighten line box
             color: Colors.white,
             fontFamily: 'Agatha',
@@ -167,7 +168,7 @@ class _LandingPageState extends State<LandingPage> {
           'MINE MASTER',
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 42,
+            fontSize: 36,
             height: 0.9,
             letterSpacing: 2,
             color: Color(0xFFFFDD00),
@@ -194,7 +195,7 @@ class _LandingPageState extends State<LandingPage> {
         const SizedBox(height: 18),
 
         // Logo
-        Image.asset('assets/appicon.png', width: 200, fit: BoxFit.contain),
+        Image.asset('assets/appicon.png', width: 180, fit: BoxFit.contain),
         const SizedBox(height: 30),
 
         // Username field
@@ -227,14 +228,14 @@ class _LandingPageState extends State<LandingPage> {
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 16,
+                vertical: 14,
               ),
             ),
             style: const TextStyle(color: Color(0xFF0B1E3D)),
           ),
         ),
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // Password field
         Container(
@@ -275,7 +276,7 @@ class _LandingPageState extends State<LandingPage> {
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
-                vertical: 16,
+                vertical: 14,
               ),
             ),
             style: const TextStyle(color: Color(0xFF0B1E3D)),
@@ -307,7 +308,7 @@ class _LandingPageState extends State<LandingPage> {
           ),
         ),
 
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
 
         // Login button
         ClickButton(
@@ -322,11 +323,11 @@ class _LandingPageState extends State<LandingPage> {
           ),
           child: Container(
             width: 280,
-            height: 56,
+            height: 48,
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF00F6FF).withValues(alpha: 0.45),
+                  color: const Color(0xFFFFA200).withValues(alpha: 0.45),
                   blurRadius: 10,
                   offset: const Offset(0, 0),
                 ),
@@ -335,12 +336,6 @@ class _LandingPageState extends State<LandingPage> {
                   ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
                   : const Color(0xFF0B1E3D),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: _isLoading
-                    ? const Color(0xFFFFA200).withValues(alpha: 0.6)
-                    : const Color(0xFFFFA200),
-                width: 3,
-              ),
             ),
             child: Center(
               child: _isLoading
@@ -361,7 +356,7 @@ class _LandingPageState extends State<LandingPage> {
           ),
         ),
 
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
 
         // Facebook login
         ClickButton(
@@ -378,11 +373,11 @@ class _LandingPageState extends State<LandingPage> {
           ),
           child: Container(
             width: 280,
-            height: 56,
+            height: 48,
             decoration: BoxDecoration(
               boxShadow: [
                 BoxShadow(
-                  color: const Color(0xFF1877F2).withValues(alpha: 0.45),
+                  color: const Color(0xFFFFA200).withValues(alpha: 0.45),
                   blurRadius: 10,
                   offset: const Offset(0, 0),
                 ),
@@ -391,10 +386,6 @@ class _LandingPageState extends State<LandingPage> {
                   ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
                   : const Color(0xFF0B1E3D),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFFFA200).withValues(alpha: 0.85),
-                width: 2,
-              ),
             ),
             child: Center(
               child: _isFacebookLoading
@@ -426,7 +417,7 @@ class _LandingPageState extends State<LandingPage> {
           ),
         ),
 
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
 
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -478,13 +469,13 @@ class _LandingPageState extends State<LandingPage> {
           ],
         ),
 
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
 
         Text(
           'Clear all safe tiles without hitting a mine.\nBuild streaks to earn bonus points.',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.78),
-            fontSize: 14,
+            fontSize: 10,
             shadows: const [
               Shadow(color: Colors.black, blurRadius: 10, offset: Offset(0, 2)),
             ],

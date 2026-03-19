@@ -404,10 +404,12 @@ class _GameBoardState extends State<GameBoard> {
           if (_stateManager.game!.remainingFlags > 0) {
             tile.isFlagged = true;
             SoundManager.playFlag();
+            SoundManager.vibrateFlag();
           }
         } else {
           tile.isFlagged = false;
           SoundManager.playUnflag();
+          SoundManager.vibrateUnflag();
         }
         _stateManager.game!.checkWin();
       }

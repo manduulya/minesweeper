@@ -4,6 +4,7 @@ import 'package:country_flags/country_flags.dart';
 import 'package:mine_master/managers/responsive_wrapper.dart';
 import 'package:provider/provider.dart';
 import 'package:mine_master/widgets/click_button_widget.dart';
+import '../dialog_utils/displayUsername.dart';
 import '../board.dart';
 import 'leaderboard.dart';
 import 'settings.dart';
@@ -212,39 +213,59 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: [
                                       Flexible(
                                         child: _buildHeaderText(
-                                          'Welcome, ${userProfile?['username'] ?? 'Player'}!',
+                                          'Welcome, ${displayUsername(userProfile?['username'])}!',
                                         ),
                                       ),
                                       if (userProfile?['country_flag'] !=
                                           null) ...[
                                         const SizedBox(width: 8),
-                                        kIsWeb
-                                            ? Text(
-                                                userProfile!['country_flag']
-                                                    .toString()
-                                                    .toUpperCase(),
-                                                style: const TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.white,
-                                                  shadows: [
-                                                    Shadow(
-                                                      color: Colors.black,
-                                                      blurRadius: 10,
-                                                      offset: Offset(0, 2),
-                                                    ),
-                                                  ],
-                                                ),
-                                              )
-                                            : CountryFlag.fromCountryCode(
-                                                userProfile!['country_flag']
-                                                    .toString()
-                                                    .toUpperCase(),
-                                                theme: const ImageTheme(
-                                                  height: 20,
-                                                  width: 28,
-                                                ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 6,
+                                            vertical: 3,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.35,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.white.withValues(
+                                                alpha: 0.50,
                                               ),
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: kIsWeb
+                                              ? Text(
+                                                  userProfile!['country_flag']
+                                                      .toString()
+                                                      .toUpperCase(),
+                                                  style: const TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.white,
+                                                    shadows: [
+                                                      Shadow(
+                                                        color: Colors.black,
+                                                        blurRadius: 10,
+                                                        offset: Offset(0, 2),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : CountryFlag.fromCountryCode(
+                                                  userProfile!['country_flag']
+                                                      .toString()
+                                                      .toUpperCase(),
+                                                  theme: const ImageTheme(
+                                                    height: 20,
+                                                    width: 28,
+                                                  ),
+                                                ),
+                                        ),
                                       ],
                                     ],
                                   ),
@@ -363,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     boxShadow: [
                                       BoxShadow(
                                         color: const Color(
-                                          0xFF00F6FF,
+                                          0xFFFFA200,
                                         ).withValues(alpha: 0.45),
                                         blurRadius: 10,
                                         offset: const Offset(0, 0),
@@ -375,14 +396,6 @@ class _HomeScreenState extends State<HomeScreen> {
                                           ).withValues(alpha: 0.6)
                                         : const Color(0xFF0B1E3D),
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: _isLoading
-                                          ? const Color(
-                                              0xFFFFA200,
-                                            ).withValues(alpha: 0.6)
-                                          : const Color(0xFFFFA200),
-                                      width: 3,
-                                    ),
                                   ),
                                   child: Center(
                                     child: _isLoading

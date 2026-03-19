@@ -77,13 +77,13 @@ class GameActionButtons extends StatelessWidget {
                 ? Colors.blue.withOpacity(0.1)
                 : Colors.grey.withOpacity(0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isHintMode
-                  ? const Color(0xFF1B2844)
-                  : canUseHint
-                  ? Colors.blue
-                  : Colors.grey,
-            ),
+            // border: Border.all(
+            //   color: isHintMode
+            //       ? const Color(0xFF1B2844)
+            //       : canUseHint
+            //       ? Colors.blue
+            //       : Colors.grey,
+            // ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -148,7 +148,7 @@ class GameActionButtons extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.orange.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange),
+            // border: Border.all(color: Colors.orange),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,

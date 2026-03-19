@@ -122,6 +122,7 @@ class Game {
 
     if (board[r][c].isBomb) {
       SoundManager.playLost();
+      SoundManager.vibrateExplode();
       isGameOver = true;
       finalScore = score;
       // Don't reveal all immediately - let the UI handle the animation
@@ -129,6 +130,7 @@ class Game {
     }
 
     SoundManager.playReveal();
+    SoundManager.vibrateReveal();
 
     if (board[r][c].adjacentBombs == 0) {
       for (int i = -1; i <= 1; i++) {
@@ -226,6 +228,7 @@ class Game {
       isGameOver = true;
       isGameWon = true;
       SoundManager.playWon();
+      SoundManager.vibrateExplode();
       int base = 100;
       winningStreak += 1;
       hintCount += 1;

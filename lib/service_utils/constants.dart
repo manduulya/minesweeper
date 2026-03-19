@@ -4,13 +4,13 @@ class ApiConstants {
   static const String localAndroidEmulator = 'http://10.0.2.2:3000/api';
   static const String localiOSSimulator = 'http://localhost:3000/api';
   static const String localPhysicalDevice =
-      'http://192.168.1.100:3000/api'; // Replace with your computer's IP
+      'http://10.0.0.83:3000/api'; // Replace with your computer's IP
 
   // Production URL
   static const String production = 'https://your-domain.com/api';
 
   // Current environment - change this based on your setup
-  static const String baseUrl = localiOSSimulator; // Change as needed
+  static const String baseUrl = localPhysicalDevice; // Change as needed
 
   // Other constants
   static const Duration requestTimeout = Duration(seconds: 30);
