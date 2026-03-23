@@ -51,21 +51,21 @@ dev_dependencies:
   flutter_native_splash: ^2.4.0
 
 flutter_launcher_icons:
-  image_path: "assets/appicon.png"
+  image_path: "assets/appicon2.png"
   android: true
   ios: true
   web:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
   windows:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
   macos:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
   linux:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
 flutter:
 
   # The following line ensures that the Material Icons font is
@@ -79,9 +79,7 @@ flutter:
     - assets/star.png
     - assets/appicon.png
     - assets/WelcomeTitle.png
-    - assets/landingPageLogo.png
     - assets/playButton.png   
-    - assets/bombRevealed.png
     - assets/restartButton.png
     - assets/hintButton.png
     - assets/streakIcon.png
