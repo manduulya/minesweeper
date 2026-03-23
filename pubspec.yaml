@@ -41,6 +41,7 @@ dependencies:
   provider: ^6.1.1
   shared_preferences: ^2.2.0 
   country_flags: ^4.0.0
+  vibration: ^2.0.0
 
 dev_dependencies:
   flutter_test:
@@ -50,21 +51,21 @@ dev_dependencies:
   flutter_native_splash: ^2.4.0
 
 flutter_launcher_icons:
-  image_path: "assets/appicon.png"
+  image_path: "assets/appicon2.png"
   android: true
   ios: true
   web:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
   windows:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
   macos:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
   linux:
     generate: true
-    image_path: "assets/appicon.png"
+    image_path: "assets/appicon2.png"
 flutter:
 
   # The following line ensures that the Material Icons font is
@@ -77,15 +78,15 @@ flutter:
     - assets/levelCompleteBackground.png
     - assets/star.png
     - assets/appicon.png
-    - assets/WelcomeTitle.png
-    - assets/landingPageLogo.png
-    - assets/playButton.png   
     - assets/bombRevealed.png
+    - assets/WelcomeTitle.png
+    - assets/playButton.png   
     - assets/restartButton.png
     - assets/hintButton.png
     - assets/streakIcon.png
     - assets/sounds/
     - assets/levels/levels.json
+    - assets/background1.png
   
   fonts: 
     - family: Acsioma
@@ -94,6 +95,9 @@ flutter:
     - family: Topaz 
       fonts:
         - asset: assets/fonts/Mogul-Topaz.ttf
+    - family: Agatha
+      fonts:
+        - asset: assets/fonts/Mogul-Agatha-Modern.ttf
 
 
   # To add assets to your application, add an assets section, like this:

@@ -19,7 +19,10 @@ class GameHeaderBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back, color: Color(0xFF0B1E3D)),
+            icon: const Icon(
+              Icons.arrow_back,
+              color: Color.fromARGB(255, 255, 228, 174),
+            ),
             onPressed: onBackPressed,
             tooltip: 'Back to Home',
           ),
@@ -28,7 +31,8 @@ class GameHeaderBar extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontFamily: 'Acsioma',
               fontSize: 20,
-              color: const Color(0xFF0B1E3D),
+              color: Color.fromARGB(255, 255, 228, 174),
+              fontWeight: FontWeight.normal,
             ),
           ),
           const SizedBox(width: 16),
@@ -37,7 +41,8 @@ class GameHeaderBar extends StatelessWidget {
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               fontFamily: 'Acsioma',
               fontSize: 20,
-              color: const Color(0xFF0B1E3D),
+              color: Color.fromARGB(255, 255, 228, 174),
+              fontWeight: FontWeight.normal,
             ),
           ),
           const Spacer(),

@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../service_utils/country_data.dart';
 import '../service_utils/constants.dart';
+import '../sound_manager.dart';
 
 class SettingsService extends ChangeNotifier {
   static final SettingsService _instance = SettingsService._internal();
@@ -52,6 +53,9 @@ class SettingsService extends ChangeNotifier {
       _userCountryFlagCode = prefs.getString('userCountryFlagCode');
       _authToken = prefs.getString('auth_token');
 
+      SoundManager.setSoundEnabled(_soundEffectsEnabled);
+      SoundManager.setVibrationEnabled(_vibrationEnabled);
+
       notifyListeners();
     } catch (e) {
       print('❌ Error initializing settings: $e');
@@ -61,22 +65,16 @@ class SettingsService extends ChangeNotifier {
   // Sound Effects setting
   Future<void> setSoundEffects(bool enabled) async {
     _soundEffectsEnabled = enabled;
+    SoundManager.setSoundEnabled(enabled); // add this line
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('soundEffectsEnabled', enabled);
-    notifyListeners();
-  }
-
-  // Background Music setting
-  Future<void> setBackgroundMusic(bool enabled) async {
-    _backgroundMusicEnabled = enabled;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('backgroundMusicEnabled', enabled);
     notifyListeners();
   }
 
   // Vibration setting
   Future<void> setVibration(bool enabled) async {
     _vibrationEnabled = enabled;
+    SoundManager.setVibrationEnabled(enabled);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('vibrationEnabled', enabled);
     notifyListeners();

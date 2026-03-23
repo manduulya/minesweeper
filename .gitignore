@@ -46,6 +46,7 @@ android/app/profile/
 android/app/release/
 android/local.properties
 android/key.properties
+android/secrets.properties
 
 # iOS
 ios/Pods/

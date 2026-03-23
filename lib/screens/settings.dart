@@ -294,12 +294,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
                         _buildSettingsTile(
                           icon: Icons.music_note,
-                          title: 'Background Music',
-                          subtitle: 'Background music during gameplay',
+                          title: 'Vibration',
+                          subtitle: 'Haptic feedback during gameplay',
                           trailing: Switch(
-                            value: settingsService.backgroundMusicEnabled,
+                            value: settingsService.vibrationEnabled,
                             onChanged: (value) =>
-                                settingsService.setBackgroundMusic(value),
+                                settingsService.setVibration(value),
                             activeColor: Color(0xFF0B1E3D),
                           ),
                         ),

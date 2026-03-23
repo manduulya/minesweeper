@@ -1,8 +1,11 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../service_utils/constants.dart';
 import '../service_utils/api_client.dart';
+import '../exceptions/app_exceptions.dart';
 
 class ApiService {
   Future<void> _saveToken(String token) async {
@@ -292,6 +295,131 @@ class ApiService {
       return decoded as Map<String, dynamic>;
     } else {
       throw response;
+    }
+  }
+
+  Future<void> resetPassword({
+    required String username,
+    required String email,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('${ApiConstants.baseUrl}/auth/reset-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'username': username,
+              'email': email,
+              'new_password': newPassword,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        // Password reset successful
+        final data = jsonDecode(response.body);
+        print('Password reset: ${data['message']}');
+        return;
+      } else if (response.statusCode == 404) {
+        // User not found with this username/email combination
+        throw UserNotFoundException(
+          'No account found with this username and email',
+        );
+      } else if (response.statusCode == 400) {
+        // Invalid request (validation error)
+        final data = jsonDecode(response.body);
+        throw Exception(data['error'] ?? 'Invalid request');
+      } else {
+        // Other error
+        final data = jsonDecode(response.body);
+        throw Exception(data['error'] ?? 'Failed to reset password');
+      }
+    } on TimeoutException {
+      throw ServerTimeoutException();
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is UserNotFoundException ||
+          e is ServerTimeoutException ||
+          e is NetworkException) {
+        rethrow;
+      }
+      throw Exception('Password reset failed: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> loginWithFacebook({
+    required String facebookId,
+    required String name,
+    String? email,
+  }) async {
+    print('📗 [API Service] Starting Facebook login API call...');
+    print('📗 [API Service] Data being sent:');
+    print('  - Facebook ID: $facebookId');
+    print('  - Name: $name');
+    print('  - Email: ${email ?? "EMPTY"}');
+
+    try {
+      final body = jsonEncode({
+        'facebook_id': facebookId,
+        'name': name,
+        'email': email,
+      });
+
+      print('📗 [API Service] Request body: $body');
+      print(
+        '📗 [API Service] Sending POST to: ${ApiConstants.baseUrl}/auth/facebook',
+      );
+
+      final response = await http
+          .post(
+            Uri.parse('${ApiConstants.baseUrl}/auth/facebook'),
+            headers: {'Content-Type': 'application/json'},
+            body: body,
+          )
+          .timeout(const Duration(seconds: 10));
+
+      print('📗 [API Service] Response received:');
+      print('  - Status code: ${response.statusCode}');
+      print('  - Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print('✅ [API Service] Success! Parsing response...');
+        final data = jsonDecode(response.body);
+
+        print('📗 [API Service] Parsed data:');
+        print('  - User: ${data['user']}');
+        print('  - Token: ${data['token']?.substring(0, 20)}...');
+
+        // Store token
+        print('📗 [API Service] Storing auth token...');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', data['token']);
+        print('✅ [API Service] Token stored successfully');
+
+        return data;
+      } else if (response.statusCode == 400) {
+        final data = jsonDecode(response.body);
+        print('❌ [API Service] 400 Bad Request: ${data['error']}');
+        throw Exception(data['error'] ?? 'Invalid Facebook data');
+      } else {
+        final data = jsonDecode(response.body);
+        print('❌ [API Service] Error ${response.statusCode}: ${data['error']}');
+        throw Exception(data['error'] ?? 'Facebook login failed');
+      }
+    } on TimeoutException {
+      print('❌ [API Service] Request timeout!');
+      throw ServerTimeoutException();
+    } on SocketException catch (e) {
+      print('❌ [API Service] Network error: $e');
+      throw NetworkException();
+    } catch (e) {
+      print('❌ [API Service] Unexpected error: $e');
+      if (e is ServerTimeoutException || e is NetworkException) {
+        rethrow;
+      }
+      throw Exception('Facebook login failed: $e');
     }
   }
 }

@@ -1,6 +1,3 @@
-// ============================================
-// File: lib/game_board.dart (MAIN FILE - REFACTORED)
-// ============================================
 import 'package:flutter/material.dart';
 import 'package:mine_master/managers/responsive_wrapper.dart';
 import 'managers/game_animation_manager.dart';
@@ -113,10 +110,6 @@ class _GameBoardState extends State<GameBoard> {
     await _startServerGame();
   }
 
-  // ============================================
-  // SERVER COMMUNICATION
-  // ============================================
-
   Future<void> _startServerGame() async {
     if (_stateManager.game == null) return;
 
@@ -173,10 +166,8 @@ class _GameBoardState extends State<GameBoard> {
       final serverHints = gameData['hints'] as int? ?? 3;
       final serverStreak = gameData['streak'] as int? ?? 0;
 
-      print('🔍 Fetching cumulative score for active game...');
       final userScore = await _serverService.getUserScore();
       final cumulativeScore = userScore?['score'] ?? 0;
-      print('🔍 Cumulative score from database: $cumulativeScore');
 
       final newGame = Game(
         rows,
@@ -207,10 +198,7 @@ class _GameBoardState extends State<GameBoard> {
       if (newGame.isGameOver && !newGame.isGameWon) {
         _showGameOverDialog();
       }
-
-      print('🔍 Active game loaded successfully');
     } catch (e) {
-      print('❌ Error loading active game: $e');
       setState(() => _stateManager.serverConnected = false);
     }
   }
@@ -221,14 +209,12 @@ class _GameBoardState extends State<GameBoard> {
     int rows,
     int cols,
   ) {
-    // Clear all bombs
     for (int r = 0; r < rows; r++) {
       for (int c = 0; c < cols; c++) {
         game.board[r][c].isBomb = false;
       }
     }
 
-    // Restore mine positions
     if (data['mine_positions'] != null) {
       final minePositions = data['mine_positions'] as List;
       for (var pos in minePositions) {
@@ -244,14 +230,12 @@ class _GameBoardState extends State<GameBoard> {
 
     game.calculateAdjacency();
 
-    // Restore revealed cells
     if (data['revealed_cells'] != null) {
       _applyCellStates(data['revealed_cells'], rows, cols, (r, c) {
         game.board[r][c].isRevealed = true;
       });
     }
 
-    // Restore flagged cells
     if (data['flagged_cells'] != null) {
       _applyCellStates(data['flagged_cells'], rows, cols, (r, c) {
         game.board[r][c].isFlagged = true;
@@ -304,16 +288,13 @@ class _GameBoardState extends State<GameBoard> {
         flaggedCells: _stateManager.getFlaggedCells(),
         hintCount: _stateManager.game!.hintCount,
       );
-    } catch (e) {
-      print('Failed to update server game: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> _finishServerGame(bool won) async {
     if (!_stateManager.serverConnected ||
         _stateManager.serverGameId == null ||
         _stateManager.game == null) {
-      print('⚠️ Cannot finish server game');
       return;
     }
 
@@ -322,44 +303,20 @@ class _GameBoardState extends State<GameBoard> {
       final streak = _stateManager.game!.winningStreak;
       final totalScore = _stateManager.game!.score;
 
-      print('📤 Finishing game: won=$won, level=${_stateManager.game!.level}');
-
-      final result = await _serverService.finishServerGame(
+      await _serverService.finishServerGame(
         won: won,
         level: _stateManager.game!.level,
         totalScore: totalScore,
         hints: hints,
         streak: streak,
       );
-
-      print('✅ Server response: $result');
-
-      if (mounted && won) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Level ${_stateManager.game!.level} completed! Score: $totalScore',
-            ),
-            duration: const Duration(seconds: 2),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      print('❌ Failed to finish server game: $e');
+    } catch (_) {
       _stateManager.isFinishingGame = false;
     }
   }
 
-  // ============================================
-  // GAME EVENT HANDLERS
-  // ============================================
-
   Future<void> _handleGameWin() async {
-    if (_stateManager.isFinishingGame) {
-      print('⚠️ Already finishing game, skipping duplicate call');
-      return;
-    }
+    if (_stateManager.isFinishingGame) return;
 
     _stateManager.isFinishingGame = true;
     _stateManager.inputLocked = true;
@@ -378,13 +335,11 @@ class _GameBoardState extends State<GameBoard> {
 
     final tile = _stateManager.game!.board[r][c];
 
-    // Hint mode handling
     if (_stateManager.isHintMode && !tile.isRevealed && !tile.isFlagged) {
       await _handleHintMode(tile);
       return;
     }
 
-    // Normal reveal
     setState(() => _stateManager.game!.reveal(r, c));
     await _updateServerGame();
 
@@ -427,9 +382,7 @@ class _GameBoardState extends State<GameBoard> {
     });
 
     Future.delayed(const Duration(milliseconds: 600), () {
-      if (mounted) {
-        setState(() => _stateManager.showHintDecrease = false);
-      }
+      if (mounted) setState(() => _stateManager.showHintDecrease = false);
     });
 
     await _updateServerGame();
@@ -451,10 +404,12 @@ class _GameBoardState extends State<GameBoard> {
           if (_stateManager.game!.remainingFlags > 0) {
             tile.isFlagged = true;
             SoundManager.playFlag();
+            SoundManager.vibrateFlag();
           }
         } else {
           tile.isFlagged = false;
           SoundManager.playUnflag();
+          SoundManager.vibrateUnflag();
         }
         _stateManager.game!.checkWin();
       }
@@ -531,10 +486,6 @@ class _GameBoardState extends State<GameBoard> {
     }
   }
 
-  // ============================================
-  // DIALOG HANDLERS
-  // ============================================
-
   void _handleGameStart() {
     Navigator.of(context).pop();
     setState(() => _stateManager.showStartDialog = false);
@@ -562,80 +513,165 @@ class _GameBoardState extends State<GameBoard> {
     if (mounted) Navigator.of(context).pop();
   }
 
-  // ============================================
-  // UI BUILD
-  // ============================================
+  Widget _buildWoodFrame({required Widget child}) {
+    const frameRadius = 16.0;
+
+    return Container(
+      padding: const EdgeInsets.all(8), // ✅ thinner frame (was 14)
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(frameRadius),
+
+        // dark wood border
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF5A3316), Color(0xFF7A4A22), Color(0xFF4A2A12)],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: const Color(0xFF2F190A),
+          width: 1.5, // ✅ thinner border
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(frameRadius - 6),
+        child: Container(
+          padding: const EdgeInsets.all(6), // ✅ thinner inner padding (was 12)
+          decoration: BoxDecoration(
+            // bright parchment background
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFFFCF4E4), Color(0xFFF3E4C8), Color(0xFFE6D1A8)],
+            ),
+            borderRadius: BorderRadius.circular(frameRadius - 6),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isCompact = screenWidth < 400;
+
     if (_stateManager.game == null) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.asset(
+              'assets/background1.png',
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+            Container(color: Colors.black.withValues(alpha: 0.25)),
+            const Center(
+              child: CircularProgressIndicator(color: Color(0xFFFFDD00)),
+            ),
+          ],
+        ),
+      );
     }
 
     return Scaffold(
       key: ValueKey("game-board-${_animationManager.animationKey}"),
-      backgroundColor: const Color(0xFFFCF4E4),
-      body: SafeArea(
-        child: ResponsiveWrapper(
-          child: Column(
-            children: [
-              GameHeaderBar(
-                level: _stateManager.game!.level,
-                score: _stateManager.game!.score,
-                onBackPressed: _handleBackToHome,
-              ),
-              Expanded(
-                child: Center(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12.0,
-                        vertical: 8.0,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          GameStatsWidget(
-                            remainingFlags: _stateManager.game!.remainingFlags,
-                            winningStreak: _stateManager.game!.winningStreak,
-                            hintCount: _stateManager.game!.hintCount,
-                            showHintDecrease: _stateManager.showHintDecrease,
-                            scale1: _animationManager.scale1,
-                            scale2: _animationManager.scale2,
-                            scale3: _animationManager.scale3,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/background1.png',
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
+          Container(color: Colors.black.withValues(alpha: 0.25)),
+
+          SafeArea(
+            child: ResponsiveWrapper(
+              child: Column(
+                children: [
+                  GameHeaderBar(
+                    level: _stateManager.game!.level,
+                    score: _stateManager.game!.score,
+                    onBackPressed: _handleBackToHome,
+                    // ✅ You'll update the widget to use this style,
+                    // but leaving these values here is harmless even if ignored.
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0,
+                            vertical: 8.0,
                           ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12.0),
-                            child: GameGridWidget(
-                              game: _stateManager.game!,
-                              onTileTap: handleTap,
-                              onTileLongPress: handleFlag,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              GameStatsWidget(
+                                remainingFlags:
+                                    _stateManager.game!.remainingFlags,
+                                winningStreak:
+                                    _stateManager.game!.winningStreak,
+                                hintCount: _stateManager.game!.hintCount,
+                                showHintDecrease:
+                                    _stateManager.showHintDecrease,
+                                scale1: _animationManager.scale1,
+                                scale2: _animationManager.scale2,
+                                scale3: _animationManager.scale3,
+                              ),
+                              const SizedBox(height: 12),
+
+                              SizedBox(
+                                height:
+                                    MediaQuery.of(context).size.height * 0.58,
+                                child: Center(
+                                  child: _buildWoodFrame(
+                                    child: GameGridWidget(
+                                      game: _stateManager.game!,
+                                      onTileTap: handleTap,
+                                      onTileLongPress: handleFlag,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 18),
+                              GameActionButtons(
+                                compact: isCompact,
+                                isHintMode: _stateManager.isHintMode,
+                                canUseHint:
+                                    _stateManager.game!.hintCount > 0 &&
+                                    !_stateManager.game!.isGameOver,
+                                onHintPressed: () {
+                                  setState(() {
+                                    _stateManager.isHintMode =
+                                        !_stateManager.isHintMode;
+                                  });
+                                },
+                                onRestartPressed: _restartGame,
+                                hintOffset: _animationManager.hintOffset,
+                                restartOffset: _animationManager.restartOffset,
+                              ),
+                            ],
                           ),
-                          GameActionButtons(
-                            isHintMode: _stateManager.isHintMode,
-                            canUseHint:
-                                _stateManager.game!.hintCount > 0 &&
-                                !_stateManager.game!.isGameOver,
-                            onHintPressed: () {
-                              setState(() {
-                                _stateManager.isHintMode =
-                                    !_stateManager.isHintMode;
-                              });
-                            },
-                            onRestartPressed: _restartGame,
-                            hintOffset: _animationManager.hintOffset,
-                            restartOffset: _animationManager.restartOffset,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

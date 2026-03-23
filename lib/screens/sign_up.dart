@@ -7,6 +7,7 @@ import 'landing_page.dart';
 import '../services/api_service.dart';
 import '../service_utils/error_handler.dart';
 import '../service_utils/country_data.dart';
+import '../services/facebook_auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -16,6 +17,8 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  final FacebookAuthService _facebookAuthService = FacebookAuthService();
+  final bool _isFacebookLoading = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -565,7 +568,7 @@ class _SignUpPageState extends State<SignUpPage> {
                           boxShadow: [
                             BoxShadow(
                               color: const Color(
-                                0xFF00F6FF,
+                                0xFFFFA200,
                               ).withValues(alpha: .7),
                               blurRadius: 11,
                               offset: const Offset(0, 0),
@@ -573,10 +576,10 @@ class _SignUpPageState extends State<SignUpPage> {
                           ],
                           color: const Color(0xFF0B1E3D),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(0xFFFFA200),
-                            width: 3,
-                          ),
+                          // border: Border.all(
+                          //   color: const Color(0xFFFFA200),
+                          //   width: 3,
+                          // ),
                         ),
                         child: Center(
                           child: _isRegistering

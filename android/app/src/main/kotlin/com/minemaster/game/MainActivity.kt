@@ -1,4 +1,4 @@
-package com.example.mobile_experiment
+package com.minemaster.game
 
 import io.flutter.embedding.android.FlutterActivity
 
