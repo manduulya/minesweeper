@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-// import 'screens/animated_splash.dart';
 import 'screens/loading.dart';
 import 'services/auth_service.dart';
 import 'screens/landing_page.dart';
@@ -110,7 +109,6 @@ class _SplashToAuthWrapperState extends State<SplashToAuthWrapper> {
 
       await settingsService.initializeSettings();
 
-      // 🔧 DEBUG: Uncomment the line below to auto-login for development
     });
   }
 

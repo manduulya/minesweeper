@@ -78,6 +78,7 @@ flutter:
     - assets/levelCompleteBackground.png
     - assets/star.png
     - assets/appicon.png
+    - assets/bombRevealed.png
     - assets/WelcomeTitle.png
     - assets/playButton.png   
     - assets/restartButton.png

@@ -32,6 +32,12 @@ class SoundManager {
   static Future<void> vibrateReveal() async => _vibrate(30); // short tap
   static Future<void> vibrateFlag() async => _vibrate(60); // medium pulse
   static Future<void> vibrateUnflag() async => _vibrate(30); // short tap
+  static Future<void> vibrateWin() async {
+    final hasVibrator = await Vibration.hasVibrator() ?? false;
+    if (!hasVibrator) return;
+    Vibration.vibrate(pattern: [0, 80, 60, 80, 60, 120]); // celebratory triple pulse
+  }
+
   static Future<void> vibrateExplode() async {
     final hasVibrator = await Vibration.hasVibrator() ?? false;
     if (!hasVibrator) return;

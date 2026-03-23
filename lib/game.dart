@@ -228,7 +228,7 @@ class Game {
       isGameOver = true;
       isGameWon = true;
       SoundManager.playWon();
-      SoundManager.vibrateExplode();
+      SoundManager.vibrateWin();
       int base = 100;
       winningStreak += 1;
       hintCount += 1;

@@ -1,8 +1,15 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+val secretsFile = rootProject.file("secrets.properties")
+val secrets = Properties().apply {
+    if (secretsFile.exists()) load(secretsFile.inputStream())
 }
 
 android {
@@ -28,6 +35,12 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        val fbAppId = secrets.getProperty("FACEBOOK_APP_ID", "")
+        val fbClientToken = secrets.getProperty("FACEBOOK_CLIENT_TOKEN", "")
+        resValue("string", "facebook_app_id", fbAppId)
+        resValue("string", "facebook_client_token", fbClientToken)
+        resValue("string", "fb_login_protocol_scheme", "fb$fbAppId")
     }
 
     buildTypes {
