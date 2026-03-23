@@ -13,7 +13,7 @@ class ApiConstants {
   static const String baseUrl = localPhysicalDevice; // Change as needed
 
   // Other constants
-  static const Duration requestTimeout = Duration(seconds: 30);
+  static const Duration requestTimeout = Duration(seconds: 5);
   static const String tokenKey = 'jwt_token';
 
   // Game constants

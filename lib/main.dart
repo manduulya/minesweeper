@@ -5,8 +5,13 @@ import 'services/auth_service.dart';
 import 'screens/landing_page.dart';
 import 'screens/home.dart';
 import 'services/settings_service.dart';
+import 'hive/hive_service.dart';
 
-void main() => runApp(const MinesweeperApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await HiveService.init();
+  runApp(const MinesweeperApp());
+}
 
 class MinesweeperApp extends StatelessWidget {
   const MinesweeperApp({super.key});
@@ -105,8 +110,7 @@ class _SplashToAuthWrapperState extends State<SplashToAuthWrapper> {
 
       final settingsService = context.read<SettingsService>();
 
-      await authService.initializeAuth();
-
+      await authService.initializeAuth(); // syncs pending results internally
       await settingsService.initializeSettings();
 
     });

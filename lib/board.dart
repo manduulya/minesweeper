@@ -37,30 +37,24 @@ class _GameBoardState extends State<GameBoard> {
   // ============================================
 
   Future<void> _loadLevelsAndStart() async {
+    // Force a fresh score fetch for this session — the static TTL cache may
+    // hold a stale value from the previous board open (e.g. pre-win score).
+    _serverService.invalidateScoreCache();
     _stateManager.levels = await loadLevels();
-    print('🚀 Loading levels and starting...');
 
     await _loadActiveGame();
 
     if (_stateManager.game == null) {
-      print('🚀 No active game, fetching user progress...');
-
       final userScore = await _serverService.getUserScore();
-      final cumulativeScore = userScore?['score'] ?? 0;
+      final currentScore = userScore?['score'] ?? 0;
       final lastCompletedLevel = userScore?['level'] ?? 0;
 
-      print('🚀 User cumulative score: $cumulativeScore');
-      print('🚀 Last completed level: $lastCompletedLevel');
-
       int nextLevelIndex = _determineNextLevelIndex(lastCompletedLevel);
-      print('🚀 Starting at level index: $nextLevelIndex');
 
       _stateManager.currentLevelIndex = nextLevelIndex;
-      await _initializeGameFromLevel(nextLevelIndex);
-
-      print('🚀 Game initialized with score: ${_stateManager.game?.score}');
-    } else {
-      print('🚀 Active game loaded with score: ${_stateManager.game?.score}');
+      // Pass the score we already fetched — avoids a second getUserScore() call
+      // inside _initializeGameFromLevel.
+      await _initializeGameFromLevel(nextLevelIndex, scoreOverride: currentScore);
     }
   }
 
@@ -80,11 +74,19 @@ class _GameBoardState extends State<GameBoard> {
     return nextLevelIndex == -1 ? 0 : nextLevelIndex;
   }
 
-  Future<void> _initializeGameFromLevel(int levelIdx) async {
+  Future<void> _initializeGameFromLevel(int levelIdx, {int? scoreOverride}) async {
     final levelData = _stateManager.levels[levelIdx];
 
-    final userScore = await _serverService.getUserScore();
-    final currentScore = userScore?['score'] ?? 0;
+    // Use scoreOverride when the score is already known (level transitions,
+    // restarts) to avoid an async network gap that leaves the header stale.
+    // Only fetch from the server on a fresh board open (scoreOverride == null).
+    final int currentScore;
+    if (scoreOverride != null) {
+      currentScore = scoreOverride;
+    } else {
+      final userScore = await _serverService.getUserScore();
+      currentScore = userScore?['score'] ?? 0;
+    }
 
     final newGame = Game(
       levelData['rows'],
@@ -292,23 +294,20 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   Future<void> _finishServerGame(bool won) async {
-    if (!_stateManager.serverConnected ||
-        _stateManager.serverGameId == null ||
-        _stateManager.game == null) {
-      return;
-    }
+    if (_stateManager.game == null) return;
 
+    // Always call the service — it handles both online (syncs to server) and
+    // offline (queues result + clears Hive game cache) cases internally.
+    // The old serverConnected guard was preventing clearGameState() from
+    // running offline, which left a stale completed game in the cache and
+    // caused the board to reload in a locked state on the next session.
     try {
-      final hints = _stateManager.game!.hintCount;
-      final streak = _stateManager.game!.winningStreak;
-      final totalScore = _stateManager.game!.score;
-
       await _serverService.finishServerGame(
         won: won,
         level: _stateManager.game!.level,
-        totalScore: totalScore,
-        hints: hints,
-        streak: streak,
+        totalScore: _stateManager.game!.score,
+        hints: _stateManager.game!.hintCount,
+        streak: _stateManager.game!.winningStreak,
       );
     } catch (_) {
       _stateManager.isFinishingGame = false;
@@ -458,7 +457,10 @@ class _GameBoardState extends State<GameBoard> {
         _stateManager.game!.isGameOver && !_stateManager.game!.isGameWon;
     _stateManager.isFinishingGame = false;
 
-    await _initializeGameFromLevel(_stateManager.currentLevelIndex);
+    await _initializeGameFromLevel(
+      _stateManager.currentLevelIndex,
+      scoreOverride: _stateManager.game!.score,
+    );
 
     setState(() {
       _stateManager.inputLocked = false;
@@ -474,7 +476,10 @@ class _GameBoardState extends State<GameBoard> {
 
     if (_stateManager.currentLevelIndex + 1 < _stateManager.levels.length) {
       _stateManager.currentLevelIndex++;
-      _initializeGameFromLevel(_stateManager.currentLevelIndex);
+      _initializeGameFromLevel(
+        _stateManager.currentLevelIndex,
+        scoreOverride: _stateManager.game!.score,
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -486,11 +491,6 @@ class _GameBoardState extends State<GameBoard> {
     }
   }
 
-  void _handleGameStart() {
-    Navigator.of(context).pop();
-    setState(() => _stateManager.showStartDialog = false);
-    _stateManager.game!.startTimer();
-  }
 
   void _showGameOverDialog() {
     _animationManager.replayAnimations(setState, mounted);
