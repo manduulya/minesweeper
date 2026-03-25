@@ -7,10 +7,11 @@ class ApiConstants {
       'http://10.0.0.83:3000/api'; // Replace with your computer's IP
 
   // Production URL
-  static const String production = 'https://your-domain.com/api';
+  static const String production =
+      'https://mine-master-server-production.up.railway.app/api';
 
   // Current environment - change this based on your setup
-  static const String baseUrl = localPhysicalDevice; // Change as needed
+  static const String baseUrl = production; // Change as needed
 
   // Other constants
   static const Duration requestTimeout = Duration(seconds: 5);

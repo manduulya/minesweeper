@@ -26,6 +26,12 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    packagingOptions {
+        doNotStrip("*/arm64-v8a/*.so")
+        doNotStrip("*/armeabi-v7a/*.so")
+        doNotStrip("*/x86_64/*.so")
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.minemaster.game"

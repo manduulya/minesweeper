@@ -45,11 +45,11 @@ class SoundManager {
     Vibration.vibrate(pattern: [0, 100, 80, 200]);
   }
 
-  static Future<void> playClick() async => _play('sounds/button-click.wav');
-  static Future<void> playReveal() async => _play('sounds/tile-reveal.wav');
-  static Future<void> playFlag() async => _play('sounds/tile-flag.wav');
-  static Future<void> playUnflag() async => _play('sounds/tile-unflag.wav');
-  static Future<void> playExplode() async => _play('sounds/explode.wav');
-  static Future<void> playLost() async => _play('sounds/match-lost.wav');
-  static Future<void> playWon() async => _play('sounds/match-won.wav');
+  static Future<void> playClick() async => _play('sounds/button-click.ogg');
+  static Future<void> playReveal() async => _play('sounds/tile-reveal.ogg');
+  static Future<void> playFlag() async => _play('sounds/tile-flag.ogg');
+  static Future<void> playUnflag() async => _play('sounds/tile-unflag.ogg');
+  static Future<void> playExplode() async => _play('sounds/explode.ogg');
+  static Future<void> playLost() async => _play('sounds/match-lost.ogg');
+  static Future<void> playWon() async => _play('sounds/match-won.ogg');
 }
