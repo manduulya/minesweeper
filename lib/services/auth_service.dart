@@ -327,38 +327,28 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Update username
-  Future<bool> updateUsername(String newUsername) async {
-    try {
-      if (_token == null) {
-        print('❌ No auth token available');
-        return false;
-      }
+  // Update username — throws Exception with a user-readable message on failure.
+  Future<void> updateUsername(String newUsername) async {
+    if (_token == null) {
+      throw Exception('Not logged in. Please sign in again.');
+    }
 
+    try {
       final response = await ApiClient.put('/user/profile', {
         'username': newUsername,
       }).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         _username = newUsername;
-
-        // Update stored preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', newUsername);
-
         notifyListeners();
-        return true;
       } else {
         final error = json.decode(response.body);
-        print('❌ Failed to update username: ${error['error']}');
-        return false;
+        throw Exception(error['error'] ?? 'Failed to update username');
       }
     } on TimeoutException {
-      print('❌ Update username timeout');
-      return false;
-    } catch (e) {
-      print('❌ Error updating username: $e');
-      return false;
+      throw Exception('Request timed out. Please try again.');
     }
   }
 

@@ -39,16 +39,20 @@ class OfflineSyncService {
 
   static void cacheStats(Map<String, dynamic> statsData) {
     HiveService.stats.put('stats', statsData);
-    // Sync to score cache — but only if the incoming value is strictly higher
-    // than what's already cached. This prevents a default fallback
-    // (total_score: 0 from an empty stats box) from wiping a valid score
-    // that was seeded by getUserScore() earlier in the session.
+    // Always sync total_score → score cache so the board and home screen
+    // stay in agreement. The old "only update if higher" guard was meant to
+    // protect against a zero-seeded fallback overwriting a real score, but it
+    // also blocked authoritative server data from correcting an inflated cache.
     final newScore = statsData['total_score'] as int?;
     if (newScore != null) {
       final existing = getCachedScore() ?? {'score': 0, 'level': 0};
-      final currentScore = existing['score'] as int? ?? 0;
-      if (newScore > currentScore) {
+      final localScore = existing['score'] as int? ?? 0;
+      // Only overwrite the local score if the server value is at least as high.
+      // This prevents a stats refresh from rolling back a score that was
+      // earned offline and not yet pushed to the server.
+      if (newScore >= localScore) {
         existing['score'] = newScore;
+        existing['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
         HiveService.stats.put('score', existing);
       }
     }
@@ -61,9 +65,13 @@ class OfflineSyncService {
   }
 
   /// Cache the user score in the same shape as the /user/score endpoint
-  /// so the board can use it directly: {score, level}.
+  /// so the board can use it directly: {score, level, updatedAt}.
+  /// updatedAt (ms since epoch) lets callers detect whether the local
+  /// score is newer than whatever the server returns.
   static void cacheScore(Map<String, dynamic> scoreData) {
-    HiveService.stats.put('score', scoreData);
+    final data = Map<String, dynamic>.from(scoreData);
+    data['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
+    HiveService.stats.put('score', data);
   }
 
   static Map<String, dynamic>? getCachedScore() {
@@ -89,7 +97,9 @@ class OfflineSyncService {
     current['games_played'] = (current['games_played'] ?? 0) + 1;
     if (won) {
       current['games_won'] = (current['games_won'] ?? 0) + 1;
-      current['total_score'] = (current['total_score'] ?? 0) + score;
+      // score is already the new cumulative total (game.score after win),
+      // not a delta — set directly instead of adding to avoid double-counting.
+      current['total_score'] = score;
     }
     cacheStats(current); // also syncs total_score → score cache via cacheStats()
 

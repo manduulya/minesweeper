@@ -47,26 +47,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final online = await OfflineSyncService.isOnline();
 
     if (online) {
-      // Sync pending offline results in the background, then refresh UI.
-      // This runs concurrently — it does NOT block the home screen from loading.
-      OfflineSyncService.syncPendingResults().then((_) async {
-        if (!mounted) return;
-        // Pending results are now on the server — reload stats to reflect them
-        try {
-          final fresh = await Future.wait([
-            _apiService.getUserProfile(),
-            _apiService.getUserStats(),
-          ]).timeout(const Duration(seconds: 5));
-          OfflineSyncService.cacheStats(
-            Map<String, dynamic>.from(fresh[1] as Map),
-          );
-          if (!mounted) return;
-          setState(() {
-            userProfile = fresh[0];
-            userStats = fresh[1];
-          });
-        } catch (_) {}
-      });
+      // Flush any pending offline results BEFORE fetching server stats.
+      // Running sync concurrently with a stats fetch caused the server's
+      // stale score (pre-sync) to overwrite the locally-cached correct value.
+      if (OfflineSyncService.pendingCount > 0) {
+        await OfflineSyncService.syncPendingResults();
+      }
 
       try {
         if (!mounted) return;

@@ -25,6 +25,11 @@ class _GameBoardState extends State<GameBoard> {
   final GameStateManager _stateManager = GameStateManager();
   final GameServerService _serverService = GameServerService();
 
+  // Score captured at the exact moment of a win — before any async work that
+  // could theoretically disturb game.score. Used by _startNextLevel so the
+  // carry-over score is always the value the player actually earned.
+  int? _scoreAtWin;
+
   @override
   void initState() {
     super.initState();
@@ -320,6 +325,10 @@ class _GameBoardState extends State<GameBoard> {
     _stateManager.isFinishingGame = true;
     _stateManager.inputLocked = true;
     _stateManager.game!.finalScore = _stateManager.game!.score;
+    // Capture the winning score synchronously before any async work so that
+    // _startNextLevel always carries the correct value even if game state is
+    // disturbed while finishServerGame is awaited.
+    _scoreAtWin = _stateManager.game!.score;
 
     await _finishServerGame(true);
     _animationManager.replayAnimations(setState, mounted);
@@ -478,8 +487,9 @@ class _GameBoardState extends State<GameBoard> {
       _stateManager.currentLevelIndex++;
       _initializeGameFromLevel(
         _stateManager.currentLevelIndex,
-        scoreOverride: _stateManager.game!.score,
+        scoreOverride: _scoreAtWin ?? _stateManager.game!.score,
       );
+      _scoreAtWin = null;
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

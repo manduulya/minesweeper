@@ -8,19 +8,12 @@ import '../hive/offline_sync_service.dart';
 class GameServerService {
   final ApiService _apiService = ApiService();
 
-  // In-memory cache so repeated getUserScore() calls within the same session
-  // don't each wait for a network timeout when the server is unreachable.
-  static Map<String, dynamic>? _scoreCache;
-  static DateTime? _scoreCacheTime;
-  static const _scoreCacheTtl = Duration(minutes: 2);
+  // Guard so only one background server reconcile runs at a time.
+  static bool _isReconciling = false;
 
-  /// Call at the start of every board session so the first getUserScore()
-  /// always fetches a fresh value instead of returning a stale TTL hit
-  /// from the previous session.
-  void invalidateScoreCache() {
-    _scoreCache = null;
-    _scoreCacheTime = null;
-  }
+  /// No-op kept for call-site compatibility — score is now always read
+  /// directly from Hive so there is no in-memory TTL cache to invalidate.
+  void invalidateScoreCache() {}
 
   Future<Map<String, String>> _getHeaders() async {
     final prefs = await SharedPreferences.getInstance();
@@ -112,20 +105,18 @@ class GameServerService {
     required int hints,
     required int streak,
   }) async {
+    // Write to Hive first — score is safe even if the API call fails.
+    OfflineSyncService.cacheScore({'score': totalScore, 'level': level});
+
     try {
       final result = await _apiService
           .finishGame(won, level, totalScore, hints, streak)
           .timeout(const Duration(seconds: 5));
       OfflineSyncService.clearGameState();
-      // Update score cache directly from the submitted score — no extra
-      // getUserScore() round-trip needed. _initializeGameFromLevel will hit
-      // this in-memory cache instantly, eliminating the display delay.
-      _scoreCache = {'score': totalScore, 'level': level};
-      _scoreCacheTime = DateTime.now();
-      OfflineSyncService.cacheScore(Map<String, dynamic>.from(_scoreCache!));
       return result;
     } catch (_) {
-      // Offline: queue result and update local stats optimistically
+      // Offline: queue result and update local stats optimistically.
+      // Hive score is already written above, so the next level load is correct.
       OfflineSyncService.queuePendingResult(
         won: won,
         level: level,
@@ -139,7 +130,6 @@ class GameServerService {
         level: level,
       );
       OfflineSyncService.clearGameState();
-      _scoreCache = null; // invalidate so next level reads updated local score
       return {'won': won, 'score': totalScore, 'offline': true};
     }
   }
@@ -173,37 +163,51 @@ class GameServerService {
     return cached;
   }
 
+  /// Always returns the Hive score immediately — no network wait.
+  ///
+  /// Hive is the single source of truth for score. When there are no pending
+  /// offline results a background reconcile checks the server: if the server
+  /// is ahead (e.g. played on another device) Hive is updated silently so the
+  /// next session picks up the correct value. If Hive is ahead (offline games
+  /// not yet synced) the server fetch is skipped entirely — the pending queue
+  /// will flush those results when home.dart next runs _loadUserData().
   Future<Map<String, dynamic>?> getUserScore() async {
-    // Return in-memory cache if still fresh — avoids multiple 5s timeouts
-    // when the board calls getUserScore() several times during load.
-    final now = DateTime.now();
-    if (_scoreCache != null &&
-        _scoreCacheTime != null &&
-        now.difference(_scoreCacheTime!) < _scoreCacheTtl) {
-      return _scoreCache;
+    final hive = OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
+
+    // Only reconcile when we know Hive is not ahead of the server.
+    if (OfflineSyncService.pendingCount == 0 && !_isReconciling) {
+      _reconcileScoreWithServer();
     }
 
+    return Map<String, dynamic>.from(hive);
+  }
+
+  /// Fetches the server score in the background and updates Hive if the
+  /// server is ahead (multi-device scenario). Never overwrites a Hive score
+  /// that is already higher — that case means pending results exist and the
+  /// pending queue is responsible for pushing them.
+  Future<void> _reconcileScoreWithServer() async {
+    _isReconciling = true;
     try {
       final result = await _apiService
           .getUserScore()
           .timeout(const Duration(seconds: 5));
-      // ApiService.getUserScore() swallows SocketException and returns null,
-      // so a null result here means the network is unreachable — treat it
-      // the same as an exception and fall through to the Hive cache.
-      if (result != null) {
-        _scoreCache = Map<String, dynamic>.from(result);
-        _scoreCacheTime = now;
-        OfflineSyncService.cacheScore(_scoreCache!);
-        return _scoreCache;
-      }
-    } catch (_) {}
+      if (result == null) return;
 
-    // Offline fallback — return Hive-persisted score so the board never
-    // starts with score = 0 just because the server was unreachable.
-    final hive = OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
-    _scoreCache = hive;
-    _scoreCacheTime = now;
-    return hive;
+      final serverScore = result['score'] as int? ?? 0;
+      final localScore =
+          OfflineSyncService.getCachedScore()?['score'] as int? ?? 0;
+
+      if (serverScore > localScore) {
+        // Server is ahead — update Hive so the next load is correct.
+        OfflineSyncService.cacheScore(Map<String, dynamic>.from(result));
+      }
+      // localScore >= serverScore: Hive is already correct, nothing to do.
+    } catch (_) {
+      // Network unreachable — Hive value stands.
+    } finally {
+      _isReconciling = false;
+    }
   }
 
   Future<List<List<int>>> getRevealedCells(int gameId) async {

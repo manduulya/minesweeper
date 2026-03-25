@@ -77,17 +77,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
     try {
       final authService = context.read<AuthService>();
-      final success = await authService.updateUsername(
+      await authService.updateUsername(
         _usernameController.text.trim(),
       );
-
-      if (success) {
-        _showSuccessSnackBar('Username updated successfully');
-      } else {
-        _showErrorSnackBar('Failed to update username');
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error updating username: $e');
+      _showSuccessSnackBar('Username updated successfully');
+    } on Exception catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      _showErrorSnackBar(msg);
     }
 
     setState(() => _isLoading = false);
