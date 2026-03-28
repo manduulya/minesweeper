@@ -579,7 +579,7 @@ class _GameBoardState extends State<GameBoard> {
           fit: StackFit.expand,
           children: [
             Image.asset(
-              'assets/background1.png',
+              'assets/background1.webp',
               fit: BoxFit.cover,
               alignment: Alignment.center,
             ),
@@ -598,7 +598,7 @@ class _GameBoardState extends State<GameBoard> {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/background1.png',
+            'assets/background1.webp',
             fit: BoxFit.cover,
             alignment: Alignment.center,
           ),

@@ -384,4 +384,34 @@ class AuthService extends ChangeNotifier {
       return false;
     }
   }
+
+  // Delete account
+  Future<bool> deleteAccount(String password) async {
+    try {
+      if (_token == null) {
+        print('❌ No auth token available');
+        return false;
+      }
+
+      final response = await ApiClient.delete('/user/profile', {
+        'password': password,
+      }).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        print('✅ Account deleted successfully');
+        await logout();
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        print('❌ Failed to delete account: ${error['error']}');
+        return false;
+      }
+    } on TimeoutException {
+      print('❌ Delete account timeout');
+      return false;
+    } catch (e) {
+      print('❌ Error deleting account: $e');
+      return false;
+    }
+  }
 }

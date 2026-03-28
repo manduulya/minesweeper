@@ -181,7 +181,7 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
                               ? _scaleAnimation.value
                               : 1.0,
                           child: Image.asset(
-                            'assets/bombRevealed.png',
+                            'assets/bombRevealed.webp',
                             width: 30,
                             height: 30,
                           ),

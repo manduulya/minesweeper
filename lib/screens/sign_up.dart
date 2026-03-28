@@ -7,7 +7,6 @@ import 'landing_page.dart';
 import '../services/api_service.dart';
 import '../service_utils/error_handler.dart';
 import '../service_utils/country_data.dart';
-import '../services/facebook_auth_service.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -17,8 +16,6 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
-  final FacebookAuthService _facebookAuthService = FacebookAuthService();
-  final bool _isFacebookLoading = false;
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();

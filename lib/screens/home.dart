@@ -186,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
       fit: StackFit.expand,
       children: [
         Image.asset(
-          'assets/background1.png',
+          'assets/background1.webp',
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
@@ -338,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               // Logo
                               Image.asset(
-                                'assets/appicon.png',
+                                'assets/appicon.webp',
                                 width: 200,
                                 fit: BoxFit.contain,
                               ),

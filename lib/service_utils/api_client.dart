@@ -38,10 +38,17 @@ class ApiClient {
   }
 
   /// DELETE request
-  static Future<http.Response> delete(String endpoint) async {
+  static Future<http.Response> delete(String endpoint, [Map<String, dynamic>? body]) async {
     final token = await _getToken();
     final uri = Uri.parse('${ApiConstants.baseUrl}$endpoint');
 
+    if (body != null) {
+      return http.delete(
+        uri,
+        headers: _buildHeaders(token),
+        body: jsonEncode(body),
+      );
+    }
     return http.delete(uri, headers: _buildHeaders(token));
   }
 

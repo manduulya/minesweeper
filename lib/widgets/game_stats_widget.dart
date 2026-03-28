@@ -30,13 +30,13 @@ class GameStatsWidget extends StatelessWidget {
           _buildStatItem(
             context: context,
             scale: scale1,
-            icon: 'assets/appicon.png',
+            icon: 'assets/appicon.webp',
             value: remainingFlags,
           ),
           _buildStatItem(
             context: context,
             scale: scale2,
-            icon: 'assets/streakIcon.png',
+            icon: 'assets/streakIcon.webp',
             value: winningStreak,
           ),
           _buildHintStatItem(context),
@@ -92,7 +92,7 @@ class GameStatsWidget extends StatelessWidget {
           width: 60,
           child: Row(
             children: [
-              Image.asset('assets/hintButton.png', width: 28, height: 28),
+              Image.asset('assets/hintButton.webp', width: 28, height: 28),
               const SizedBox(width: 4),
               SizedBox(
                 height: 40,
