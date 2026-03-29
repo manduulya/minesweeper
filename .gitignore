@@ -47,6 +47,7 @@ android/app/release/
 android/local.properties
 android/key.properties
 android/secrets.properties
+android/app/upload-keystore.jks
 
 # iOS
 ios/Pods/

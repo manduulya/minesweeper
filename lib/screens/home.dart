@@ -12,6 +12,7 @@ import 'landing_page.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../service_utils/error_handler.dart';
+import '../hive/offline_sync_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,30 +41,60 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _loadUserData() async {
     setState(() => _isLoading = true);
 
-    try {
-      // Fetch fresh profile from AuthService
-      final authService = context.read<AuthService>();
-      await authService.fetchUserProfile();
+    // Capture before any async gaps
+    final authService = context.read<AuthService>();
 
-      final results = await Future.wait([
-        _apiService.getUserProfile(),
-        _apiService.getUserStats(),
-      ]);
+    final online = await OfflineSyncService.isOnline();
 
-      setState(() {
-        userProfile = results[0];
-        userStats = results[1];
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() => _isLoading = false);
-
-      if (e.toString().contains('401') || e.toString().contains('403')) {
-        _handleLogout();
-      } else {
-        _errorHandler.handleError(context, e);
+    if (online) {
+      // Flush any pending offline results BEFORE fetching server stats.
+      // Running sync concurrently with a stats fetch caused the server's
+      // stale score (pre-sync) to overwrite the locally-cached correct value.
+      if (OfflineSyncService.pendingCount > 0) {
+        await OfflineSyncService.syncPendingResults();
       }
+
+      try {
+        if (!mounted) return;
+        await authService.fetchUserProfile();
+
+        final results = await Future.wait([
+          _apiService.getUserProfile(),
+          _apiService.getUserStats(),
+        ]).timeout(const Duration(seconds: 5));
+
+        OfflineSyncService.cacheStats(
+          Map<String, dynamic>.from(results[1] as Map),
+        );
+
+        if (!mounted) return;
+        setState(() {
+          userProfile = results[0];
+          userStats = results[1];
+          _isLoading = false;
+        });
+      } catch (e) {
+        if (!mounted) return;
+        final msg = e.toString();
+        if (msg.contains('401') || msg.contains('403')) {
+          _handleLogout();
+        } else {
+          _loadFromCache();
+        }
+      }
+    } else {
+      _loadFromCache();
     }
+  }
+
+  void _loadFromCache() {
+    final cachedStats = OfflineSyncService.getCachedStats();
+    final cachedProfile = OfflineSyncService.getCachedUserProfile();
+    setState(() {
+      if (cachedProfile != null) userProfile = cachedProfile;
+      if (cachedStats != null) userStats = cachedStats;
+      _isLoading = false;
+    });
   }
 
   Future<void> _handleLogout() async {
@@ -83,7 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       setState(() => _isLoggingOut = false);
-      _errorHandler.handleError(context, e);
+      if (mounted) _errorHandler.handleError(context, e);
     }
   }
 
@@ -155,7 +186,7 @@ class _HomeScreenState extends State<HomeScreen> {
       fit: StackFit.expand,
       children: [
         Image.asset(
-          'assets/background1.png',
+          'assets/background1.webp',
           fit: BoxFit.cover,
           alignment: Alignment.center,
         ),
@@ -307,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             children: [
                               // Logo
                               Image.asset(
-                                'assets/appicon.png',
+                                'assets/appicon.webp',
                                 width: 200,
                                 fit: BoxFit.contain,
                               ),

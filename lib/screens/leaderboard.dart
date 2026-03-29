@@ -87,11 +87,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     return country?.name ?? 'International';
   }
 
-  String _getCountryFlagCode(String flagCode) {
-    final country = CountryHelper.getCountryByFlagCode(flagCode);
-    return country?.flagCode ?? 'international';
-  }
-
   String _getFlagEmoji(String countryCode) {
     if (countryCode == 'international') return '🌍';
 
@@ -348,7 +343,9 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                             children: [
                                               Expanded(
                                                 child: Text(
-                                                  user.username,
+                                                  user.username.isEmpty
+                                                      ? ''
+                                                      : '${user.username[0].toUpperCase()}${user.username.substring(1)}',
                                                   style: TextStyle(
                                                     color: Color(0xFF0B1E3D),
                                                     fontWeight: isCurrentUser

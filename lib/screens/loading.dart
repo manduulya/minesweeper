@@ -107,7 +107,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/background1.png',
+            'assets/background1.webp',
             fit: BoxFit.cover,
             alignment: Alignment.center,
           ),
@@ -133,7 +133,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
                         // Base bomb image (untinted)
                         Positioned.fill(
                           child: Image.asset(
-                            'assets/appicon.png',
+                            'assets/appicon.webp',
                             fit: BoxFit.contain,
                           ),
                         ),

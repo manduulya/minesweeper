@@ -37,12 +37,6 @@ class _LandingPageState extends State<LandingPage> {
     super.dispose();
   }
 
-  void _navigateToGame() {
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => SplashToAuthWrapper()));
-  }
-
   Future<void> _handleFacebookLogin() async {
     setState(() => _isFacebookLoading = true);
 
@@ -493,7 +487,7 @@ class _LandingPageState extends State<LandingPage> {
         fit: StackFit.expand,
         children: [
           Image.asset(
-            'assets/background1.png',
+            'assets/background1.webp',
             fit: BoxFit.cover,
             alignment: Alignment.center,
           ),

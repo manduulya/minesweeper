@@ -80,7 +80,7 @@ class _AnimatedStarsState extends State<AnimatedStars>
                     ? _scaleAnimations[index].value
                     : 0.0,
                 child: Image.asset(
-                  'assets/star.png',
+                  'assets/star.webp',
                   width: 30,
                   height: 30,
                   // Optional: add color filter if you want to tint the image

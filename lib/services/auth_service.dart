@@ -6,6 +6,7 @@ import 'dart:async';
 import '../service_utils/api_client.dart';
 import '../services/settings_service.dart';
 import '../exceptions/app_exceptions.dart';
+import '../hive/offline_sync_service.dart';
 
 // Authentication Service to manage login state
 class AuthService extends ChangeNotifier {
@@ -40,14 +41,24 @@ class AuthService extends ChangeNotifier {
       _userId = prefs.getString('userId');
       _countryFlag = prefs.getString('country_flag');
 
-      // If logged in, fetch fresh profile data
       if (_isLoggedIn && _token != null) {
-        await fetchUserProfile();
+        final online = await OfflineSyncService.isOnline();
+        if (online) {
+          await fetchUserProfile(); // refreshes from server + updates cache
+        } else {
+          // Restore from Hive cache when offline
+          final cached = OfflineSyncService.getCachedUserProfile();
+          if (cached != null) {
+            _username = cached['username'] ?? _username;
+            _email = cached['email'] ?? _email;
+            _userId = cached['userId'] ?? _userId;
+            _countryFlag = cached['countryFlag'] ?? _countryFlag;
+          }
+        }
       }
 
       notifyListeners();
     } catch (e) {
-      print('❌ Error initializing auth: $e');
       _isLoggedIn = false;
       notifyListeners();
     }
@@ -77,6 +88,15 @@ class AuthService extends ChangeNotifier {
     if (userId != null) await prefs.setString('userId', userId);
     await prefs.setString('country_flag', _countryFlag!);
 
+    // Cache to Hive for offline use
+    OfflineSyncService.cacheUserProfile(
+      username: username,
+      email: email ?? '',
+      userId: userId ?? '',
+      countryFlag: _countryFlag!,
+      token: token,
+    );
+
     // Update SettingsService
     final settingsService = SettingsService();
     settingsService.setAuthToken(token);
@@ -95,7 +115,7 @@ class AuthService extends ChangeNotifier {
 
       final response = await ApiClient.get(
         '/user/profile',
-      ).timeout(const Duration(seconds: 10));
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -113,6 +133,17 @@ class AuthService extends ChangeNotifier {
           await prefs.setString('country_flag', _countryFlag!);
         }
 
+        // Update Hive cache
+        if (_token != null) {
+          OfflineSyncService.cacheUserProfile(
+            username: _username ?? '',
+            email: _email ?? '',
+            userId: _userId ?? '',
+            countryFlag: _countryFlag ?? 'international',
+            token: _token!,
+          );
+        }
+
         // Update SettingsService with country flag
         final settingsService = SettingsService();
         settingsService.setCountryFlagFromAuth(_countryFlag ?? 'international');
@@ -120,11 +151,11 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         await logout();
-      } else {}
+      }
     } on TimeoutException {
-      print('❌ Profile fetch timeout');
-    } catch (e) {
-      print('❌ Error fetching user profile: $e');
+      // Offline or server unreachable — silently continue with cached data
+    } catch (_) {
+      // Network error — silently continue with cached data
     }
   }
 
@@ -152,6 +183,15 @@ class AuthService extends ChangeNotifier {
         await prefs.setString('email', _email!);
         await prefs.setString('userId', _userId!);
         await prefs.setString('country_flag', _countryFlag!);
+
+        // Cache to Hive for offline use
+        OfflineSyncService.cacheUserProfile(
+          username: _username!,
+          email: _email!,
+          userId: _userId!,
+          countryFlag: _countryFlag!,
+          token: _token!,
+        );
 
         // Update SettingsService
         final settingsService = SettingsService();
@@ -232,6 +272,15 @@ class AuthService extends ChangeNotifier {
         await prefs.setString('userId', _userId!);
         await prefs.setString('country_flag', _countryFlag!);
 
+        // Cache to Hive for offline use
+        OfflineSyncService.cacheUserProfile(
+          username: _username!,
+          email: _email!,
+          userId: _userId!,
+          countryFlag: _countryFlag!,
+          token: _token!,
+        );
+
         // Update SettingsService
         final settingsService = SettingsService();
         settingsService.setAuthToken(_token);
@@ -243,7 +292,6 @@ class AuthService extends ChangeNotifier {
         notifyListeners();
         return true;
       } else {
-        print('❌ Registration failed: ${response.statusCode}');
         return false;
       }
     } on TimeoutException {
@@ -273,41 +321,34 @@ class AuthService extends ChangeNotifier {
     await prefs.remove('userId');
     await prefs.remove('country_flag');
 
+    // Clear Hive cache
+    OfflineSyncService.clearUserProfile();
+
     notifyListeners();
   }
 
-  // Update username
-  Future<bool> updateUsername(String newUsername) async {
-    try {
-      if (_token == null) {
-        print('❌ No auth token available');
-        return false;
-      }
+  // Update username — throws Exception with a user-readable message on failure.
+  Future<void> updateUsername(String newUsername) async {
+    if (_token == null) {
+      throw Exception('Not logged in. Please sign in again.');
+    }
 
+    try {
       final response = await ApiClient.put('/user/profile', {
         'username': newUsername,
       }).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         _username = newUsername;
-
-        // Update stored preferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', newUsername);
-
         notifyListeners();
-        return true;
       } else {
         final error = json.decode(response.body);
-        print('❌ Failed to update username: ${error['error']}');
-        return false;
+        throw Exception(error['error'] ?? 'Failed to update username');
       }
     } on TimeoutException {
-      print('❌ Update username timeout');
-      return false;
-    } catch (e) {
-      print('❌ Error updating username: $e');
-      return false;
+      throw Exception('Request timed out. Please try again.');
     }
   }
 
@@ -340,6 +381,36 @@ class AuthService extends ChangeNotifier {
       return false;
     } catch (e) {
       print('❌ Error updating password: $e');
+      return false;
+    }
+  }
+
+  // Delete account
+  Future<bool> deleteAccount(String password) async {
+    try {
+      if (_token == null) {
+        print('❌ No auth token available');
+        return false;
+      }
+
+      final response = await ApiClient.delete('/user/profile', {
+        'password': password,
+      }).timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200) {
+        print('✅ Account deleted successfully');
+        await logout();
+        return true;
+      } else {
+        final error = json.decode(response.body);
+        print('❌ Failed to delete account: ${error['error']}');
+        return false;
+      }
+    } on TimeoutException {
+      print('❌ Delete account timeout');
+      return false;
+    } catch (e) {
+      print('❌ Error deleting account: $e');
       return false;
     }
   }

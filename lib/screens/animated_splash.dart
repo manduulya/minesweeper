@@ -42,7 +42,7 @@ class _AnimatedSplashScreenState extends State<AnimatedSplashScreen>
       body: Center(
         child: RotationTransition(
           turns: _controller,
-          child: Image.asset('assets/appicon.png', width: 100, height: 100),
+          child: Image.asset('assets/appicon.webp', width: 100, height: 100),
         ),
       ),
     );

@@ -21,9 +21,10 @@ class _SettingsPageState extends State<SettingsPage> {
       TextEditingController();
   final TextEditingController _countrySearchController =
       TextEditingController();
+  final TextEditingController _deleteAccountPasswordController =
+      TextEditingController();
 
   String? _selectedCountryFlagCode;
-  bool _isLoading = false;
   List<CountryData> _filteredCountries = [];
 
   @override
@@ -49,6 +50,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _newPasswordController.dispose();
     _confirmPasswordController.dispose();
     _countrySearchController.dispose();
+    _deleteAccountPasswordController.dispose();
     super.dispose();
   }
 
@@ -73,24 +75,14 @@ class _SettingsPageState extends State<SettingsPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
-
     try {
       final authService = context.read<AuthService>();
-      final success = await authService.updateUsername(
-        _usernameController.text.trim(),
-      );
-
-      if (success) {
-        _showSuccessSnackBar('Username updated successfully');
-      } else {
-        _showErrorSnackBar('Failed to update username');
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error updating username: $e');
+      await authService.updateUsername(_usernameController.text.trim());
+      _showSuccessSnackBar('Username updated successfully');
+    } on Exception catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      _showErrorSnackBar(msg);
     }
-
-    setState(() => _isLoading = false);
   }
 
   Future<void> _updateCountry() async {
@@ -98,8 +90,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _showErrorSnackBar('Please select a country');
       return;
     }
-
-    setState(() => _isLoading = true);
 
     try {
       final settingsService = context.read<SettingsService>();
@@ -119,8 +109,6 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (e) {
       _showErrorSnackBar('Error updating country: $e');
     }
-
-    setState(() => _isLoading = false);
   }
 
   Future<void> _updatePassword() async {
@@ -140,8 +128,6 @@ class _SettingsPageState extends State<SettingsPage> {
       _showErrorSnackBar('New password must be at least 6 characters');
       return;
     }
-
-    setState(() => _isLoading = true);
 
     try {
       final authService = context.read<AuthService>();
@@ -163,8 +149,6 @@ class _SettingsPageState extends State<SettingsPage> {
     } catch (e) {
       _showErrorSnackBar('Error updating password: $e');
     }
-
-    setState(() => _isLoading = false);
   }
 
   void _showSuccessSnackBar(String message) {
@@ -316,6 +300,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           subtitle: 'Sign out of your account',
                           titleColor: Colors.red,
                           onTap: () => _showLogoutDialog(),
+                        ),
+                        Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),
+                        _buildSettingsTile(
+                          icon: Icons.delete_forever,
+                          title: 'Delete Account',
+                          subtitle: 'Permanently delete your account',
+                          titleColor: Colors.red,
+                          onTap: () => _showDeleteAccountDialog(),
                         ),
                       ]),
 
@@ -614,5 +606,85 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  void _showDeleteAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Delete Account'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to delete your account? This action cannot be undone.',
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Enter your password to confirm:',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+            SizedBox(height: 8),
+            TextField(
+              controller: _deleteAccountPasswordController,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAccountPasswordController.clear();
+            },
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _deleteAccount();
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: Text('Delete', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _deleteAccount() async {
+    if (_deleteAccountPasswordController.text.isEmpty) {
+      _showErrorSnackBar('Please enter your password');
+      return;
+    }
+
+    try {
+      final authService = context.read<AuthService>();
+      final success = await authService.deleteAccount(
+        _deleteAccountPasswordController.text,
+      );
+
+      if (success) {
+        _showSuccessSnackBar('Account deleted successfully');
+        _deleteAccountPasswordController.clear();
+        Navigator.pop(context);
+      } else {
+        _showErrorSnackBar('Failed to delete account. Check your password.');
+        _deleteAccountPasswordController.clear();
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error deleting account: $e');
+      _deleteAccountPasswordController.clear();
+    }
   }
 }

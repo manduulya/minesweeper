@@ -90,7 +90,7 @@ class GameActionButtons extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                'assets/hintButton.png',
+                'assets/hintButton.webp',
                 width: iconSize,
                 height: iconSize,
               ),
@@ -155,7 +155,7 @@ class GameActionButtons extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Image.asset(
-                'assets/restartButton.png',
+                'assets/restartButton.webp',
                 width: iconSize,
                 height: iconSize,
               ),
