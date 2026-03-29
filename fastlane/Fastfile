@@ -1,0 +1,45 @@
+default_platform(:ios)
+
+platform :ios do
+
+  desc "Generate App Store screenshots on all required simulators"
+  lane :screenshots do
+    simulators = [
+      "iPhone 16 Pro Max",   # 6.9 inch  — required
+      "iPhone 11 Pro Max",   # 6.5 inch  — required
+    ]
+
+    simulators.each do |device|
+      puts "📸 Taking screenshots on #{device}..."
+
+      sh(
+        "flutter", "drive",
+        "--driver=test_driver/integration_test.dart",
+        "--target=integration_test/screenshots_test.dart",
+        "--dart-define=IS_SCREENSHOT_MODE=true",
+        "-d", device,
+        chdir: ".."   # run from project root, not fastlane/
+      )
+    end
+
+    puts "✅ Screenshots saved to build/ios/screenshots/"
+  end
+
+  desc "Upload screenshots to App Store Connect"
+  lane :upload_screenshots do
+    deliver(
+      skip_binary_upload: true,
+      skip_metadata: true,
+      screenshots_path: "../build/ios/screenshots",
+      submit_for_review: false,
+      force: true,
+    )
+  end
+
+  desc "Generate screenshots then upload in one step"
+  lane :screenshots_and_upload do
+    screenshots
+    upload_screenshots
+  end
+
+end
