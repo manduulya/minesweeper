@@ -50,6 +50,7 @@ android/secrets.properties
 android/app/upload-keystore.jks
 
 # iOS
+ios/Flutter/Secrets.xcconfig
 ios/Pods/
 ios/Runner.xcworkspace/
 ios/build/
