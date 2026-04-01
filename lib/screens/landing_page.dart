@@ -214,22 +214,24 @@ class _LandingPageState extends State<LandingPage> {
     required Color backgroundColor,
     required Color iconColor,
   }) {
-    return ClickButton(
-      onPressed: onPressed,
-      style: ElevatedButton.styleFrom(
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-      ),
+    final color = onPressed == null
+        ? backgroundColor.withValues(alpha: 0.6)
+        : backgroundColor;
+    return GestureDetector(
+      onTap: onPressed == null ? null : () async { await onPressed(); },
       child: Container(
         width: 132,
         height: 48,
         decoration: BoxDecoration(
-          color: onPressed == null
-              ? backgroundColor.withValues(alpha: 0.6)
-              : backgroundColor,
+          color: color,
           borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Center(
           child: isLoading
