@@ -4,6 +4,7 @@ import 'package:mine_master/managers/responsive_wrapper.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
 import '../service_utils/country_data.dart';
+import '../service_utils/constants.dart';
 
 class LeaderboardPage extends StatefulWidget {
   const LeaderboardPage({super.key});
@@ -38,7 +39,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
           return LeaderboardUser(
             username: item['username'] as String,
             totalScore: item['total_score'] as int,
-            countryFlag: item['country_flag'] as String,
+            countryFlag: item['country_flag'] as String? ?? '',
           );
         }).toList();
         _isLoading = false;
@@ -82,13 +83,17 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     ];
   }
 
+  bool _hasCountry(String flagCode) =>
+      flagCode.isNotEmpty && flagCode != ApiConstants.kNoCountry;
+
   String _getCountryName(String flagCode) {
+    if (!_hasCountry(flagCode)) return '';
     final country = CountryHelper.getCountryByFlagCode(flagCode);
-    return country?.name ?? 'International';
+    return country?.name ?? '';
   }
 
   String _getFlagEmoji(String countryCode) {
-    if (countryCode == 'international') return '🌍';
+    if (!_hasCountry(countryCode)) return '';
 
     final code = countryCode.toUpperCase();
     if (code.length != 2) return '🌍';
@@ -380,23 +385,27 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                                 ),
                                             ],
                                           ),
-                                          subtitle: Text(
-                                            _getCountryName(user.countryFlag),
-                                            style: TextStyle(
-                                              color: Color(
-                                                0xFF0B1E3D,
-                                              ).withValues(alpha: .7),
-                                              fontSize: 14,
-                                            ),
-                                          ),
+                                          subtitle: _getCountryName(user.countryFlag).isNotEmpty
+                                              ? Text(
+                                                  _getCountryName(user.countryFlag),
+                                                  style: TextStyle(
+                                                    color: Color(
+                                                      0xFF0B1E3D,
+                                                    ).withValues(alpha: .7),
+                                                    fontSize: 14,
+                                                  ),
+                                                )
+                                              : null,
                                           trailing: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                _getFlagEmoji(user.countryFlag),
-                                                style: TextStyle(fontSize: 24),
-                                              ),
-                                              SizedBox(width: 12),
+                                              if (_getFlagEmoji(user.countryFlag).isNotEmpty) ...[
+                                                Text(
+                                                  _getFlagEmoji(user.countryFlag),
+                                                  style: TextStyle(fontSize: 24),
+                                                ),
+                                                SizedBox(width: 12),
+                                              ],
                                               Column(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,

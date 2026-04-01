@@ -12,6 +12,9 @@ class GameActionButtons extends StatelessWidget {
   /// ✅ NEW: when true (e.g. screenWidth < 400), buttons get smaller + fit better
   final bool compact;
 
+  /// Extra bottom padding to clear the banner ad
+  final double bottomPadding;
+
   const GameActionButtons({
     super.key,
     required this.isHintMode,
@@ -21,6 +24,7 @@ class GameActionButtons extends StatelessWidget {
     required this.hintOffset,
     required this.restartOffset,
     this.compact = false,
+    this.bottomPadding = 0,
   });
 
   @override
@@ -28,7 +32,7 @@ class GameActionButtons extends StatelessWidget {
     final gap = compact ? 10.0 : 14.0;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      padding: EdgeInsets.only(top: 12.0, bottom: 12.0 + bottomPadding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

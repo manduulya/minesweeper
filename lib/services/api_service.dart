@@ -45,7 +45,7 @@ class ApiService {
     String username,
     String email,
     String password,
-    String countryFlag,
+    String? countryFlag,
   ) async {
     final response = await _makeRequest(
       () => http.post(
@@ -55,7 +55,8 @@ class ApiService {
           'username': username,
           'email': email,
           'password': password,
-          'country_flag': countryFlag,
+          if (countryFlag != null && countryFlag.isNotEmpty)
+            'country_flag': countryFlag,
         }),
       ),
     );
@@ -346,6 +347,48 @@ class ApiService {
         rethrow;
       }
       throw Exception('Password reset failed: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>> loginWithApple({
+    required String appleId,
+    String? name,
+    String? email,
+    String? identityToken,
+  }) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('${ApiConstants.baseUrl}/auth/apple'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'apple_id': appleId,
+              'name': name,
+              'email': email,
+              'identity_token': identityToken,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('auth_token', data['token']);
+        return data;
+      } else if (response.statusCode == 400) {
+        final data = jsonDecode(response.body);
+        throw Exception(data['error'] ?? 'Invalid Apple data');
+      } else {
+        final data = jsonDecode(response.body);
+        throw Exception(data['error'] ?? 'Apple login failed');
+      }
+    } on TimeoutException {
+      throw ServerTimeoutException();
+    } on SocketException {
+      throw NetworkException();
+    } catch (e) {
+      if (e is ServerTimeoutException || e is NetworkException) rethrow;
+      throw Exception('Apple login failed: $e');
     }
   }
 

@@ -7,6 +7,7 @@ import 'landing_page.dart';
 import '../services/api_service.dart';
 import '../service_utils/error_handler.dart';
 import '../service_utils/country_data.dart';
+import '../service_utils/constants.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -43,8 +44,7 @@ class _SignUpPageState extends State<SignUpPage> {
     if (_usernameController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
-        _retypePasswordController.text.isEmpty ||
-        _selectedCountryFlag == null) {
+        _retypePasswordController.text.isEmpty) {
       _errorHandler.showError(context, 'Please fill in all fields');
       return false;
     }
@@ -93,7 +93,7 @@ class _SignUpPageState extends State<SignUpPage> {
         _usernameController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text,
-        _selectedCountryFlag!,
+        _selectedCountryFlag ?? '',
       );
 
       // Registration successful
@@ -132,7 +132,7 @@ class _SignUpPageState extends State<SignUpPage> {
         displayStringForOption: (CountryData option) => option.name,
         optionsBuilder: (TextEditingValue textEditingValue) {
           if (textEditingValue.text.isEmpty) {
-            return const Iterable<CountryData>.empty();
+            return CountryHelper.countries.take(30);
           }
           return CountryHelper.countries.where(
             (country) => country.name.toLowerCase().contains(
@@ -161,7 +161,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   prefixIcon: _selectedCountryFlag != null
                       ? Padding(
                           padding: const EdgeInsets.all(12.0),
-                          child: _selectedCountryFlag == 'international'
+                          child: _selectedCountryFlag == ApiConstants.kNoCountry
                               ? const Icon(
                                   Icons.public,
                                   color: Color(0xFF0B1E3D),
@@ -181,7 +181,7 @@ class _SignUpPageState extends State<SignUpPage> {
                                 ),
                         )
                       : const Icon(Icons.public, color: Color(0xFF0B1E3D)),
-                  hintText: 'Select Country',
+                  hintText: 'Select your country (optional)',
                   hintStyle: TextStyle(
                     color: const Color(0xFF0B1E3D).withValues(alpha: .6),
                   ),
@@ -232,8 +232,8 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                         child: Row(
                           children: [
-                            // Show globe icon for 'international', flag for others
-                            option.flagCode == 'international'
+                            // Show globe icon for ApiConstants.kNoCountry, flag for others
+                            option.flagCode == ApiConstants.kNoCountry
                                 ? const Icon(
                                     Icons.public,
                                     color: Color(0xFF0B1E3D),

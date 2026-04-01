@@ -11,8 +11,6 @@ class CountryHelper {
   // Comprehensive list of countries with proper ISO 3166-1 alpha-2 codes
   // These codes work with the country_flags package
   static const List<CountryData> countries = [
-    CountryData(name: 'International', flagCode: 'international'),
-
     // A
     CountryData(name: 'Afghanistan', flagCode: 'af'),
     CountryData(name: 'Albania', flagCode: 'al'),

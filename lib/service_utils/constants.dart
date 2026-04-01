@@ -17,6 +17,9 @@ class ApiConstants {
   static const Duration requestTimeout = Duration(seconds: 5);
   static const String tokenKey = 'jwt_token';
 
+  // Country constants
+  static const String kNoCountry = 'international';
+
   // Game constants
   static const Map<String, Map<String, int>> gameDifficulties = {
     'beginner': {'width': 9, 'height': 9, 'mines': 10},
