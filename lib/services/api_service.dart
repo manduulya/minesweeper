@@ -397,23 +397,12 @@ class ApiService {
     required String name,
     String? email,
   }) async {
-    print('📗 [API Service] Starting Facebook login API call...');
-    print('📗 [API Service] Data being sent:');
-    print('  - Facebook ID: $facebookId');
-    print('  - Name: $name');
-    print('  - Email: ${email ?? "EMPTY"}');
-
     try {
       final body = jsonEncode({
         'facebook_id': facebookId,
         'name': name,
         'email': email,
       });
-
-      print('📗 [API Service] Request body: $body');
-      print(
-        '📗 [API Service] Sending POST to: ${ApiConstants.baseUrl}/auth/facebook',
-      );
 
       final response = await http
           .post(
@@ -423,45 +412,24 @@ class ApiService {
           )
           .timeout(const Duration(seconds: 10));
 
-      print('📗 [API Service] Response received:');
-      print('  - Status code: ${response.statusCode}');
-      print('  - Response body: ${response.body}');
-
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('✅ [API Service] Success! Parsing response...');
         final data = jsonDecode(response.body);
-
-        print('📗 [API Service] Parsed data:');
-        print('  - User: ${data['user']}');
-        print('  - Token: ${data['token']?.substring(0, 20)}...');
-
-        // Store token
-        print('📗 [API Service] Storing auth token...');
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('auth_token', data['token']);
-        print('✅ [API Service] Token stored successfully');
-
         return data;
       } else if (response.statusCode == 400) {
         final data = jsonDecode(response.body);
-        print('❌ [API Service] 400 Bad Request: ${data['error']}');
         throw Exception(data['error'] ?? 'Invalid Facebook data');
       } else {
         final data = jsonDecode(response.body);
-        print('❌ [API Service] Error ${response.statusCode}: ${data['error']}');
         throw Exception(data['error'] ?? 'Facebook login failed');
       }
     } on TimeoutException {
-      print('❌ [API Service] Request timeout!');
       throw ServerTimeoutException();
-    } on SocketException catch (e) {
-      print('❌ [API Service] Network error: $e');
+    } on SocketException {
       throw NetworkException();
     } catch (e) {
-      print('❌ [API Service] Unexpected error: $e');
-      if (e is ServerTimeoutException || e is NetworkException) {
-        rethrow;
-      }
+      if (e is ServerTimeoutException || e is NetworkException) rethrow;
       throw Exception('Facebook login failed: $e');
     }
   }
