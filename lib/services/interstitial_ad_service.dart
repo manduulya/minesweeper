@@ -7,14 +7,14 @@ class InterstitialAdService {
   static const String _roundCountKey = 'rounds_since_last_ad';
   static const int _roundsPerAd = 3;
 
-  // static String get _adUnitId => Platform.isIOS
-  //     ? 'ca-app-pub-7775348743322565/8718307892'
-  //     : 'ca-app-pub-7775348743322565/9700217077';
+  static String get _adUnitId => Platform.isIOS
+      ? 'ca-app-pub-7775348743322565/8718307892'
+      : 'ca-app-pub-7775348743322565/9700217077';
 
   // Test IDs — safe to click during development
-  static String get _adUnitId => Platform.isIOS
-      ? 'ca-app-pub-3940256099942544/4411468910' // iOS interstitial test
-      : 'ca-app-pub-3940256099942544/1033173712'; // Android interstitial test
+  // static String get _adUnitId => Platform.isIOS
+  //    ? 'ca-app-pub-3940256099942544/4411468910' // iOS interstitial test
+  //    : 'ca-app-pub-3940256099942544/1033173712'; // Android interstitial test
 
   InterstitialAd? _interstitialAd;
   SharedPreferences? _prefs;

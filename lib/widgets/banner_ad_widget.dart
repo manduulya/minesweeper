@@ -2,12 +2,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 
-// String get _adUnitId => Platform.isIOS
-//     ? 'ca-app-pub-7775348743322565/6283716247'
-//     : 'ca-app-pub-7775348743322565/7129894055';
 String get _adUnitId => Platform.isIOS
-    ? 'ca-app-pub-3940256099942544/2934735716' // iOS banner test
-    : 'ca-app-pub-3940256099942544/6300978111'; // Android banner test
+    ? 'ca-app-pub-7775348743322565/6283716247'
+    : 'ca-app-pub-7775348743322565/7129894055';
+// String get _adUnitId => Platform.isIOS
+  //  ? 'ca-app-pub-3940256099942544/2934735716' // iOS banner test
+  //  : 'ca-app-pub-3940256099942544/6300978111'; // Android banner test
 
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
