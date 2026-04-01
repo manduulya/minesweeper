@@ -4,6 +4,7 @@ import 'package:mine_master/managers/responsive_wrapper.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 import '../service_utils/country_data.dart';
+import '../service_utils/constants.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -39,8 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsService = context.read<SettingsService>();
 
     _usernameController.text = authService.username ?? '';
-    _selectedCountryFlagCode =
-        settingsService.userCountryFlagCode ?? 'international';
+    _selectedCountryFlagCode = settingsService.userCountryFlagCode;
   }
 
   @override
@@ -240,14 +240,21 @@ class _SettingsPageState extends State<SettingsPage> {
                         _buildSettingsTile(
                           icon: Icons.flag,
                           title: 'Country',
-                          subtitle: settingsService.userCountry ?? 'Not set',
-                          trailing: Text(
-                            settingsService.getCountryFlag(
-                              settingsService.userCountryFlagCode ??
-                                  'international',
-                            ),
-                            style: TextStyle(fontSize: 24),
-                          ),
+                          subtitle: (settingsService.userCountryFlagCode == null ||
+                                  settingsService.userCountryFlagCode == ApiConstants.kNoCountry ||
+                                  settingsService.userCountryFlagCode!.isEmpty)
+                              ? 'Not set'
+                              : settingsService.userCountry ?? 'Not set',
+                          trailing: (settingsService.userCountryFlagCode != null &&
+                                  settingsService.userCountryFlagCode != ApiConstants.kNoCountry &&
+                                  settingsService.userCountryFlagCode!.isNotEmpty)
+                              ? Text(
+                                  settingsService.getCountryFlag(
+                                    settingsService.userCountryFlagCode!,
+                                  ),
+                                  style: TextStyle(fontSize: 24),
+                                )
+                              : null,
                           onTap: () => _showCountryDialog(),
                         ),
                         Divider(color: Color(0xFF0B1E3D).withValues(alpha: .1)),

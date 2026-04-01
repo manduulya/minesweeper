@@ -9,7 +9,9 @@ import '../service_utils/error_handler.dart';
 import '../main.dart';
 import '../services/auth_service.dart';
 import '../exceptions/app_exceptions.dart';
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import '../services/facebook_auth_service.dart';
+import '../services/apple_auth_service.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -22,7 +24,9 @@ class _LandingPageState extends State<LandingPage> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final FacebookAuthService _facebookAuthService = FacebookAuthService();
+  final AppleAuthService _appleAuthService = AppleAuthService();
   bool _isFacebookLoading = false;
+  bool _isAppleLoading = false;
 
   // Server integration
   final ApiService _apiService = ApiService();
@@ -37,21 +41,17 @@ class _LandingPageState extends State<LandingPage> {
     super.dispose();
   }
 
-  Future<void> _handleFacebookLogin() async {
-    setState(() => _isFacebookLoading = true);
-
+  Future<void> _handleSocialLogin({
+    required Future<void> Function() authFn,
+    required Future<Map<String, dynamic>> Function() apiFn,
+    required void Function(bool) setLoading,
+  }) async {
+    final authService = context.read<AuthService>();
+    setLoading(true);
     try {
-      final facebookData = await _facebookAuthService.signInWithFacebook();
-
-      final result = await _apiService.loginWithFacebook(
-        facebookId: facebookData['facebook_id'],
-        name: facebookData['name'],
-        email: facebookData['email'],
-      );
-
+      await authFn();
+      final result = await apiFn();
       if (!mounted) return;
-
-      final authService = context.read<AuthService>();
       await authService.setUserData(
         result['user']['username'],
         result['token'],
@@ -59,12 +59,7 @@ class _LandingPageState extends State<LandingPage> {
         userId: result['user']['id']?.toString(),
         countryFlag: result['user']['country_flag'],
       );
-
-      _errorHandler.showSuccess(
-        context,
-        'Welcome, ${result['user']['username']}!',
-      );
-
+      _errorHandler.showSuccess(context, 'Welcome, ${result['user']['username']}!');
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const SplashToAuthWrapper()),
@@ -72,8 +67,39 @@ class _LandingPageState extends State<LandingPage> {
     } catch (error) {
       if (mounted) _errorHandler.handleError(context, error);
     } finally {
-      if (mounted) setState(() => _isFacebookLoading = false);
+      if (mounted) setLoading(false);
     }
+  }
+
+  Future<void> _handleAppleLogin() async {
+    Map<String, dynamic>? appleData;
+    await _handleSocialLogin(
+      authFn: () async {
+        appleData = await _appleAuthService.signInWithApple();
+      },
+      apiFn: () => _apiService.loginWithApple(
+        appleId: appleData!['apple_id'],
+        name: appleData!['name'],
+        email: appleData!['email'],
+        identityToken: appleData!['identity_token'],
+      ),
+      setLoading: (v) => setState(() => _isAppleLoading = v),
+    );
+  }
+
+  Future<void> _handleFacebookLogin() async {
+    Map<String, dynamic>? fbData;
+    await _handleSocialLogin(
+      authFn: () async {
+        fbData = await _facebookAuthService.signInWithFacebook();
+      },
+      apiFn: () => _apiService.loginWithFacebook(
+        facebookId: fbData!['facebook_id'],
+        name: fbData!['name'],
+        email: fbData!['email'],
+      ),
+      setLoading: (v) => setState(() => _isFacebookLoading = v),
+    );
   }
 
   Future<void> _handleLogin() async {
@@ -178,6 +204,39 @@ class _LandingPageState extends State<LandingPage> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSocialButton({
+    required IconData icon,
+    required bool isLoading,
+    required Future<void> Function()? onPressed,
+    required Color backgroundColor,
+    required Color iconColor,
+  }) {
+    return ClickButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+      ),
+      child: Container(
+        width: 132,
+        height: 48,
+        decoration: BoxDecoration(
+          color: onPressed == null
+              ? backgroundColor.withValues(alpha: 0.6)
+              : backgroundColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Center(
+          child: isLoading
+              ? CircularProgressIndicator(color: iconColor, strokeWidth: 2)
+              : Icon(icon, color: iconColor, size: 28),
+        ),
+      ),
     );
   }
 
@@ -352,64 +411,91 @@ class _LandingPageState extends State<LandingPage> {
 
         const SizedBox(height: 12),
 
-        // Facebook login
-        ClickButton(
-          onPressed: (_isLoading || _isFacebookLoading)
-              ? null
-              : _handleFacebookLogin,
-          style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+        // On iOS: two icon-only buttons side by side
+        // On other platforms: full-width Facebook button with text
+        if (defaultTargetPlatform == TargetPlatform.iOS)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildSocialButton(
+                icon: Icons.facebook,
+                isLoading: _isFacebookLoading,
+                onPressed: (_isLoading || _isFacebookLoading || _isAppleLoading)
+                    ? null
+                    : _handleFacebookLogin,
+                backgroundColor: const Color(0xFF1877F2),
+                iconColor: Colors.white,
+              ),
+              const SizedBox(width: 16),
+              _buildSocialButton(
+                icon: Icons.apple,
+                isLoading: _isAppleLoading,
+                onPressed: (_isLoading || _isFacebookLoading || _isAppleLoading)
+                    ? null
+                    : _handleAppleLogin,
+                backgroundColor: Colors.white,
+                iconColor: Colors.black,
+              ),
+            ],
+          )
+        else
+          ClickButton(
+            onPressed: (_isLoading || _isFacebookLoading)
+                ? null
+                : _handleFacebookLogin,
+            style: ElevatedButton.styleFrom(
+              padding: EdgeInsets.zero,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              backgroundColor: Colors.transparent,
+              shadowColor: Colors.transparent,
             ),
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-          ),
-          child: Container(
-            width: 280,
-            height: 48,
-            decoration: BoxDecoration(
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFFA200).withValues(alpha: 0.45),
-                  blurRadius: 10,
-                  offset: const Offset(0, 0),
-                ),
-              ],
-              color: (_isLoading || _isFacebookLoading)
-                  ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
-                  : const Color(0xFF0B1E3D),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: _isFacebookLoading
-                  ? const CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
-                        Icon(
-                          Icons.facebook,
-                          color: Color(0xFFFFDD00),
-                          size: 26,
-                        ),
-                        SizedBox(width: 12),
-                        Text(
-                          'LOGIN WITH FACEBOOK',
-                          style: TextStyle(
+            child: Container(
+              width: 280,
+              height: 48,
+              decoration: BoxDecoration(
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFFFA200).withValues(alpha: 0.45),
+                    blurRadius: 10,
+                    offset: const Offset(0, 0),
+                  ),
+                ],
+                color: (_isLoading || _isFacebookLoading)
+                    ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                    : const Color(0xFF0B1E3D),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: _isFacebookLoading
+                    ? const CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.facebook,
                             color: Color(0xFFFFDD00),
-                            fontFamily: 'Acsioma',
-                            fontSize: 18,
-                            fontWeight: FontWeight.normal,
+                            size: 26,
                           ),
-                        ),
-                      ],
-                    ),
+                          SizedBox(width: 12),
+                          Text(
+                            'LOGIN WITH FACEBOOK',
+                            style: TextStyle(
+                              color: Color(0xFFFFDD00),
+                              fontFamily: 'Acsioma',
+                              fontSize: 18,
+                              fontWeight: FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
             ),
           ),
-        ),
 
         const SizedBox(height: 12),
 
@@ -476,6 +562,7 @@ class _LandingPageState extends State<LandingPage> {
           ),
           textAlign: TextAlign.center,
         ),
+        const SizedBox(height: 5),
       ],
     );
   }

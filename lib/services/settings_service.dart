@@ -134,7 +134,7 @@ class SettingsService extends ChangeNotifier {
 
   // Get country flag emoji from flag code
   String getCountryFlag(String flagCode) {
-    if (flagCode.isEmpty || flagCode == 'international') {
+    if (flagCode.isEmpty || flagCode == ApiConstants.kNoCountry) {
       return '🌍';
     }
 

@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'screens/loading.dart';
 import 'services/auth_service.dart';
 import 'screens/landing_page.dart';
 import 'screens/home.dart';
 import 'services/settings_service.dart';
 import 'hive/hive_service.dart';
+import 'widgets/banner_ad_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveService.init();
+  if (!kIsWeb) {
+    await MobileAds.instance.initialize();
+  }
   runApp(const MinesweeperApp());
 }
 
@@ -28,6 +34,20 @@ class MinesweeperApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
 
         title: 'Mine Master',
+
+        builder: kIsWeb
+            ? null
+            : (context, child) => Stack(
+                  children: [
+                    child!,
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: const BannerAdWidget(),
+                    ),
+                  ],
+                ),
 
         theme: ThemeData(
           useMaterial3: true,

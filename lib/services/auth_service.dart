@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'dart:async';
 import '../service_utils/api_client.dart';
+import '../service_utils/constants.dart';
 import '../services/settings_service.dart';
 import '../exceptions/app_exceptions.dart';
 import '../hive/offline_sync_service.dart';
@@ -75,7 +76,7 @@ class AuthService extends ChangeNotifier {
     _token = token;
     _email = email;
     _userId = userId;
-    _countryFlag = countryFlag ?? 'international';
+    _countryFlag = countryFlag ?? ApiConstants.kNoCountry;
     _isAuthenticated = true;
     _isLoggedIn = true;
 
@@ -123,7 +124,7 @@ class AuthService extends ChangeNotifier {
         _userId = data['id']?.toString();
         _username = data['username'];
         _email = data['email'];
-        _countryFlag = data['country_flag'] ?? 'international';
+        _countryFlag = data['country_flag'] ?? ApiConstants.kNoCountry;
 
         // Save to SharedPreferences
         final prefs = await SharedPreferences.getInstance();
@@ -139,14 +140,14 @@ class AuthService extends ChangeNotifier {
             username: _username ?? '',
             email: _email ?? '',
             userId: _userId ?? '',
-            countryFlag: _countryFlag ?? 'international',
+            countryFlag: _countryFlag ?? ApiConstants.kNoCountry,
             token: _token!,
           );
         }
 
         // Update SettingsService with country flag
         final settingsService = SettingsService();
-        settingsService.setCountryFlagFromAuth(_countryFlag ?? 'international');
+        settingsService.setCountryFlagFromAuth(_countryFlag ?? ApiConstants.kNoCountry);
 
         notifyListeners();
       } else if (response.statusCode == 401 || response.statusCode == 403) {
@@ -173,7 +174,7 @@ class AuthService extends ChangeNotifier {
         _username = data['user']['username'];
         _email = data['user']['email'];
         _userId = data['user']['id'].toString();
-        _countryFlag = data['user']['country_flag'] ?? 'international';
+        _countryFlag = data['user']['country_flag'] ?? ApiConstants.kNoCountry;
         _isLoggedIn = true;
 
         final prefs = await SharedPreferences.getInstance();

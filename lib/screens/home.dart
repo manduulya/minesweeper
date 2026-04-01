@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:country_flags/country_flags.dart';
 import 'package:mine_master/managers/responsive_wrapper.dart';
+import '../service_utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:mine_master/widgets/click_button_widget.dart';
 import '../dialog_utils/displayUsername.dart';
@@ -247,8 +248,9 @@ class _HomeScreenState extends State<HomeScreen> {
                                           'Welcome, ${displayUsername(userProfile?['username'])}!',
                                         ),
                                       ),
-                                      if (userProfile?['country_flag'] !=
-                                          null) ...[
+                                      if (userProfile?['country_flag'] != null &&
+                                          userProfile!['country_flag'].toString().isNotEmpty &&
+                                          userProfile!['country_flag'].toString() != ApiConstants.kNoCountry) ...[
                                         const SizedBox(width: 8),
                                         Container(
                                           padding: const EdgeInsets.symmetric(

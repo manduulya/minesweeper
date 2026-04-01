@@ -49,6 +49,15 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<key>GADApplicationIdentifier</key>
+		<string>$(ADMOB_APP_ID)</string>
+		<key>SKAdNetworkItems</key>
+		<array>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>cstr6suwn9.skadnetwork</string>
+			</dict>
+		</array>
 		<key>FacebookAppID</key>
 		<string>$(FACEBOOK_APP_ID)</string>
 		<key>FacebookClientToken</key>

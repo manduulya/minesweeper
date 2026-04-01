@@ -3,6 +3,7 @@ import 'package:mine_master/managers/responsive_wrapper.dart';
 import 'managers/game_animation_manager.dart';
 import 'managers/game_state_manager.dart';
 import 'managers/game_server_service.dart';
+import 'services/interstitial_ad_service.dart';
 import 'widgets/game_header_bar.dart';
 import 'widgets/game_stats_widget.dart';
 import 'widgets/game_action_buttons.dart';
@@ -24,6 +25,7 @@ class _GameBoardState extends State<GameBoard> {
   final GameAnimationManager _animationManager = GameAnimationManager();
   final GameStateManager _stateManager = GameStateManager();
   final GameServerService _serverService = GameServerService();
+  final InterstitialAdService _interstitialAdService = InterstitialAdService();
 
   // Score captured at the exact moment of a win — before any async work that
   // could theoretically disturb game.score. Used by _startNextLevel so the
@@ -35,6 +37,7 @@ class _GameBoardState extends State<GameBoard> {
     super.initState();
     _loadLevelsAndStart();
     _animationManager.startAnimations(setState, mounted);
+    _interstitialAdService.preloadAd();
   }
 
   // ============================================
@@ -332,6 +335,7 @@ class _GameBoardState extends State<GameBoard> {
 
     await _finishServerGame(true);
     _animationManager.replayAnimations(setState, mounted);
+    await _interstitialAdService.onRoundComplete();
 
     if (mounted) {
       Future.delayed(Duration.zero, () => _showWinDialog());
@@ -357,6 +361,7 @@ class _GameBoardState extends State<GameBoard> {
         await _handleGameWin();
       } else {
         await _finishServerGame(false);
+        await _interstitialAdService.onRoundComplete();
         await _showBombSequenceAndDialog();
       }
     }
@@ -670,6 +675,7 @@ class _GameBoardState extends State<GameBoard> {
                                 onRestartPressed: _restartGame,
                                 hintOffset: _animationManager.hintOffset,
                                 restartOffset: _animationManager.restartOffset,
+                                bottomPadding: 50,
                               ),
                             ],
                           ),
