@@ -50,7 +50,7 @@
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
 		<key>GADApplicationIdentifier</key>
-		<string>$(ADMOB_APP_ID)</string>
+		<string>ca-app-pub-7775348743322565~6752183205</string>
 		<key>SKAdNetworkItems</key>
 		<array>
 			<dict>
