@@ -140,12 +140,12 @@ class GameServerService {
           .loadCurrentGame()
           .timeout(const Duration(seconds: 5));
       if (serverGame != null) {
-        final status = serverGame['game_status'] as String? ?? 'active';
+        final status = serverGame['game_status'] as String? ?? '';
         // Only resume an active server game. A completed server game is stale
         // — ignore it and fall through to check the Hive cache instead.
         // Do NOT call clearGameState() here: the user may have a valid
         // mid-game in Hive that started while the server was unreachable.
-        if (status == 'active') return serverGame;
+        if (status == 'active' || status == 'playing') return serverGame;
       }
     } catch (_) {
       // Server unreachable — fall through to Hive cache
@@ -153,14 +153,35 @@ class GameServerService {
 
     final cached = OfflineSyncService.getCachedGameState();
     if (cached == null) return null;
-    // Safety guard: Hive cache should always be 'active' (we never write
-    // won/lost there), but if it somehow isn't, clear it and start fresh.
-    final cachedStatus = cached['game_status'] as String? ?? 'active';
-    if (cachedStatus != 'active') {
+    // Safety guard: Hive cache should always be 'active' or 'playing' (we
+    // never write won/lost there), but if it somehow isn't, clear it and
+    // start fresh.
+    final cachedStatus = cached['game_status'] as String? ?? '';
+    if (cachedStatus != 'active' && cachedStatus != 'playing') {
       OfflineSyncService.clearGameState();
       return null;
     }
     return cached;
+  }
+
+  /// Fetches fresh hints and streak from the server (or Hive fallback).
+  ///
+  /// Returns a map with at minimum `{hints, streak}`. On success, also caches
+  /// the full stats blob so the rest of the session stays in sync.
+  Future<Map<String, dynamic>> getUserStats() async {
+    try {
+      final result = await _apiService
+          .getUserStats()
+          .timeout(const Duration(seconds: 5));
+      // Cache so offline fallback and home screen stay current.
+      OfflineSyncService.cacheStats(result);
+      return result;
+    } catch (_) {
+      // Server unreachable — fall back to Hive, then hard defaults.
+      final cached = OfflineSyncService.getCachedStats();
+      if (cached != null) return cached;
+      return {'hints': 3, 'streak': 0};
+    }
   }
 
   /// Always returns the Hive score immediately — no network wait.
@@ -188,11 +209,18 @@ class GameServerService {
   /// pending queue is responsible for pushing them.
   Future<void> _reconcileScoreWithServer() async {
     _isReconciling = true;
+    // Capture the generation before the await so we can detect an account
+    // switch that happened while the network request was in-flight.
+    final generationAtStart = OfflineSyncService.cacheGeneration;
     try {
       final result = await _apiService
           .getUserScore()
           .timeout(const Duration(seconds: 5));
       if (result == null) return;
+
+      // If clearAllUserData() was called while we awaited (account switch /
+      // logout), discard the response — it belongs to the previous user.
+      if (OfflineSyncService.cacheGeneration != generationAtStart) return;
 
       final serverScore = result['score'] as int? ?? 0;
       final localScore =

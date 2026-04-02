@@ -6,6 +6,16 @@ class SoundManager {
   static bool _soundEnabled = true;
   static bool _vibrationEnabled = true;
 
+  // Pool of players for sounds that can overlap (e.g. rapid tile reveals).
+  static final List<AudioPlayer> _revealPool = [];
+  static int _revealPoolIndex = 0;
+  static const int _revealPoolSize = 6;
+
+  // Small pool for flag/unflag so rapid flags don't cut each other off.
+  static final List<AudioPlayer> _flagPool = [];
+  static int _flagPoolIndex = 0;
+  static const int _flagPoolSize = 3;
+
   static void setSoundEnabled(bool enabled) {
     _soundEnabled = enabled;
   }
@@ -19,7 +29,28 @@ class SoundManager {
 
   static Future<void> _play(String asset) async {
     if (!_soundEnabled) return;
-    await _player.play(AssetSource(asset));
+    try {
+      await _player.play(AssetSource(asset));
+    } catch (_) {
+      // Player still preparing — skip this instance.
+    }
+  }
+
+  /// Plays a sound using a round-robin pool so rapid calls overlap correctly
+  /// instead of cutting off the previous instance.
+  static Future<void> _playPooled(String asset) async {
+    if (!_soundEnabled) return;
+    if (_revealPool.length < _revealPoolSize) {
+      _revealPool.add(AudioPlayer());
+    }
+    final player = _revealPool[_revealPoolIndex % _revealPool.length];
+    _revealPoolIndex++;
+    try {
+      await player.setVolume(0.4);
+      await player.play(AssetSource(asset));
+    } catch (_) {
+      // Player still preparing from a previous call — skip this instance.
+    }
   }
 
   static Future<void> _vibrate(int duration) async {
@@ -33,6 +64,7 @@ class SoundManager {
   static Future<void> vibrateFlag() async => _vibrate(60); // medium pulse
   static Future<void> vibrateUnflag() async => _vibrate(30); // short tap
   static Future<void> vibrateWin() async {
+    if (!_vibrationEnabled) return;
     final hasVibrator = await Vibration.hasVibrator();
     if (!hasVibrator) return;
     Vibration.vibrate(
@@ -41,6 +73,7 @@ class SoundManager {
   }
 
   static Future<void> vibrateExplode() async {
+    if (!_vibrationEnabled) return;
     final hasVibrator = await Vibration.hasVibrator();
     if (!hasVibrator) return;
     // Double thud for explosion
@@ -48,9 +81,24 @@ class SoundManager {
   }
 
   static Future<void> playClick() async => _play('sounds/button-click.ogg');
-  static Future<void> playReveal() async => _play('sounds/tile-reveal.ogg');
-  static Future<void> playFlag() async => _play('sounds/tile-flag.ogg');
-  static Future<void> playUnflag() async => _play('sounds/tile-unflag.ogg');
+  static Future<void> playReveal() async =>
+      _playPooled('sounds/tile-reveal1.ogg');
+  static Future<void> _playFlagPooled(String asset) async {
+    if (!_soundEnabled) return;
+    if (_flagPool.length < _flagPoolSize) {
+      _flagPool.add(AudioPlayer());
+    }
+    final player = _flagPool[_flagPoolIndex % _flagPool.length];
+    _flagPoolIndex++;
+    try {
+      await player.play(AssetSource(asset));
+    } catch (_) {
+      // Player still preparing from a previous call — skip this instance.
+    }
+  }
+
+  static Future<void> playFlag() async => _playFlagPooled('sounds/tile-flag.ogg');
+  static Future<void> playUnflag() async => _playFlagPooled('sounds/tile-unflag.ogg');
   static Future<void> playExplode() async => _play('sounds/explode.ogg');
   static Future<void> playLost() async => _play('sounds/match-lost.ogg');
   static Future<void> playWon() async => _play('sounds/match-won.ogg');

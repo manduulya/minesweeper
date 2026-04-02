@@ -12,6 +12,7 @@ import 'package:mine_master/sound_manager.dart';
 import 'game.dart';
 import './dialog_utils/dialog_utils.dart';
 import 'levels/levels_loader.dart';
+import 'hive/offline_sync_service.dart';
 
 class GameBoard extends StatefulWidget {
   const GameBoard({super.key});
@@ -53,16 +54,27 @@ class _GameBoardState extends State<GameBoard> {
     await _loadActiveGame();
 
     if (_stateManager.game == null) {
-      final userScore = await _serverService.getUserScore();
-      final currentScore = userScore?['score'] ?? 0;
-      final lastCompletedLevel = userScore?['level'] ?? 0;
+      // Fetch score and stats in parallel so we have fresh hints/streak from DB.
+      final results = await Future.wait([
+        _serverService.getUserScore(),
+        _serverService.getUserStats(),
+      ]);
+      final userScore = results[0];
+      final userStats = results[1];
+      final currentScore = userScore?['score'] as int? ?? 0;
+      final lastCompletedLevel = userScore?['level'] as int? ?? 0;
+      final freshHints = userStats?['hints'] as int? ?? 3;
+      final freshStreak = userStats?['streak'] as int? ?? 0;
 
       int nextLevelIndex = _determineNextLevelIndex(lastCompletedLevel);
 
       _stateManager.currentLevelIndex = nextLevelIndex;
-      // Pass the score we already fetched — avoids a second getUserScore() call
-      // inside _initializeGameFromLevel.
-      await _initializeGameFromLevel(nextLevelIndex, scoreOverride: currentScore);
+      await _initializeGameFromLevel(
+        nextLevelIndex,
+        scoreOverride: currentScore,
+        hintsOverride: freshHints,
+        streakOverride: freshStreak,
+      );
     }
   }
 
@@ -82,7 +94,12 @@ class _GameBoardState extends State<GameBoard> {
     return nextLevelIndex == -1 ? 0 : nextLevelIndex;
   }
 
-  Future<void> _initializeGameFromLevel(int levelIdx, {int? scoreOverride}) async {
+  Future<void> _initializeGameFromLevel(
+    int levelIdx, {
+    int? scoreOverride,
+    int? hintsOverride,
+    int? streakOverride,
+  }) async {
     final levelData = _stateManager.levels[levelIdx];
 
     // Use scoreOverride when the score is already known (level transitions,
@@ -96,14 +113,25 @@ class _GameBoardState extends State<GameBoard> {
       currentScore = userScore?['score'] ?? 0;
     }
 
+    // Priority: explicit overrides (fresh from DB) > live game values > cache.
+    final cachedStats = (_stateManager.game == null && hintsOverride == null)
+        ? OfflineSyncService.getCachedStats()
+        : null;
+    final int resolvedStreak = _stateManager.game?.winningStreak ??
+        streakOverride ??
+        (cachedStats?['streak'] as int? ?? 0);
+    final int resolvedHints = _stateManager.game?.hintCount ??
+        hintsOverride ??
+        (cachedStats?['hints'] as int? ?? 3);
+
     final newGame = Game(
       levelData['rows'],
       levelData['cols'],
       levelData['bombs'],
       level: levelData['level'],
       score: currentScore,
-      winningStreak: _stateManager.game?.winningStreak ?? 0,
-      hintCount: _stateManager.game?.hintCount ?? 3,
+      winningStreak: resolvedStreak,
+      hintCount: resolvedHints,
       shape: (levelData['shape'] as List)
           .map((row) => (row as List).map((e) => e as int).toList())
           .toList(),
@@ -625,7 +653,7 @@ class _GameBoardState extends State<GameBoard> {
                       child: SingleChildScrollView(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 12.0,
+                            horizontal: 4.0,
                             vertical: 8.0,
                           ),
                           child: Column(
