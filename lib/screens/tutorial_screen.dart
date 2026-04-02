@@ -516,12 +516,11 @@ class _TutorialScreenState extends State<TutorialScreen>
           Container(color: Colors.black.withValues(alpha: 0.38)),
           SafeArea(
             child: ResponsiveWrapper(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
+              child: Column(
+                children: [
                   // Header
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                    padding: const EdgeInsets.fromLTRB(20, 50, 8, 0),
                     child: Row(
                       children: [
                         const Text(
@@ -554,24 +553,28 @@ class _TutorialScreenState extends State<TutorialScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 8),
                   _buildStepDots(),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 40),
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _buildInstructionCard(),
-                  ),
-
-                  const SizedBox(height: 20),
-
+                  // Board is fixed right below the dots — never moves.
                   Center(
                     child: _buildWoodFrame(child: _buildGrid()),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
+
+                  // Instruction card fills all remaining space below the board.
+                  // Scrollable so long text never overflows on small screens.
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildInstructionCard(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
                 ],
-              ),
               ),
             ),
           ),
