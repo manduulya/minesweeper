@@ -1,6 +1,23 @@
 # Minesweeper Flutter Game
 
-A classic Minesweeper game built with Flutter featuring multiple levels of difficulty, scoring based on time and mine clearance, and a rewarding winning streak bonus system.
+Mine Master is the ultimate minesweeper challenge — 200 levels of logic, strategy, and pure brain power.
+
+Starting from a classic 10-mine grid and scaling all the way up to brutal 60-mine boards, Mine Master tests your puzzle-solving instincts at every turn. Each level ramps up the challenge, pushing you to think faster, flag smarter, and survive longer.
+
+FEATURES
+• 200 handcrafted levels — from beginner to expert
+• Global leaderboard — compete with players worldwide
+• Winning streaks — chain victories to climb the ranks
+• Hint system — stuck? use a hint to reveal a safe tile
+• Works offline — play anywhere, no connection needed
+• Progress syncs across sessions — never lose your place
+
+HOW TO PLAY
+Tap to reveal tiles, long-press to place flags, and use logic to avoid hidden mines. Clear the board without triggering a mine to win. Simple to learn, hard to master.
+
+Whether you're a minesweeper veteran or picking it up for the first time, Mine Master delivers a clean, satisfying puzzle experience with endless replayability.
+
+Can you reach Level 200?
 
 ## Features
 
@@ -11,6 +28,9 @@ A classic Minesweeper game built with Flutter featuring multiple levels of diffi
 - Pop-up notifications displaying earned bonus points
 - Clean, responsive UI using Flutter widgets
 - Cross-platform support: runs on iOS, Android, and desktop
+
+## Keywords 
+minesweeper,logic,puzzle,brain,mines,strategy,sweep,bomb,grid,classic,challenge,leaderboard
 
 ## Screenshots
 
@@ -99,4 +119,3 @@ How to contribute:
 ```
 
 5. Open a pull request describing your changes
-

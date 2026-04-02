@@ -389,6 +389,8 @@ class _GameBoardState extends State<GameBoard> {
       if (_stateManager.game!.isGameWon) {
         await _handleGameWin();
       } else {
+        if (_stateManager.isFinishingGame) return;
+        _stateManager.isFinishingGame = true;
         await _finishServerGame(false);
         await _interstitialAdService.onRoundComplete();
         await _showBombSequenceAndDialog();
