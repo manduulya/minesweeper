@@ -105,8 +105,18 @@ class GameServerService {
     required int hints,
     required int streak,
   }) async {
-    // Write to Hive first — score is safe even if the API call fails.
-    OfflineSyncService.cacheScore({'score': totalScore, 'level': level});
+    // On a win, cache both score and the completed level so the next session
+    // starts at the correct next level. On a loss, only cache the score —
+    // the level in Hive must remain the last *completed* level, not the
+    // current (failed) one, otherwise _determineNextLevelIndex advances
+    // the level even though nothing was completed.
+    if (won) {
+      OfflineSyncService.cacheScore({'score': totalScore, 'level': level});
+    } else {
+      final existing = OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
+      existing['score'] = totalScore;
+      OfflineSyncService.cacheScore(existing);
+    }
 
     try {
       final result = await _apiService
