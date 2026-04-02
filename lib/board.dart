@@ -702,7 +702,8 @@ class _GameBoardState extends State<GameBoard> {
                                 onRestartPressed: _restartGame,
                                 hintOffset: _animationManager.hintOffset,
                                 restartOffset: _animationManager.restartOffset,
-                                bottomPadding: 50,
+                                // 60 = banner ad height, plus system nav bar
+                                bottomPadding: 60 + MediaQuery.of(context).padding.bottom,
                               ),
                             ],
                           ),
