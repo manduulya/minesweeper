@@ -650,8 +650,7 @@ class _GameBoardState extends State<GameBoard> {
                   ),
                   Expanded(
                     child: Center(
-                      child: SingleChildScrollView(
-                        child: Padding(
+                      child: Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 4.0,
                             vertical: 8.0,
@@ -710,7 +709,6 @@ class _GameBoardState extends State<GameBoard> {
                         ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),

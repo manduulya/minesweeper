@@ -342,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onRefresh: _loadUserData,
                       color: const Color(0xFFFFDD00),
                       child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Column(
