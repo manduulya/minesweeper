@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:mine_master/managers/responsive_wrapper.dart';
 import 'managers/game_animation_manager.dart';
@@ -649,67 +650,61 @@ class _GameBoardState extends State<GameBoard> {
                     // but leaving these values here is harmless even if ignored.
                   ),
                   Expanded(
-                    child: Center(
-                      child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 4.0,
-                            vertical: 8.0,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 4.0,
+                        vertical: 8.0,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          GameStatsWidget(
+                            remainingFlags:
+                                _stateManager.game!.remainingFlags,
+                            winningStreak:
+                                _stateManager.game!.winningStreak,
+                            hintCount: _stateManager.game!.hintCount,
+                            showHintDecrease:
+                                _stateManager.showHintDecrease,
+                            scale1: _animationManager.scale1,
+                            scale2: _animationManager.scale2,
+                            scale3: _animationManager.scale3,
                           ),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              GameStatsWidget(
-                                remainingFlags:
-                                    _stateManager.game!.remainingFlags,
-                                winningStreak:
-                                    _stateManager.game!.winningStreak,
-                                hintCount: _stateManager.game!.hintCount,
-                                showHintDecrease:
-                                    _stateManager.showHintDecrease,
-                                scale1: _animationManager.scale1,
-                                scale2: _animationManager.scale2,
-                                scale3: _animationManager.scale3,
-                              ),
-                              const SizedBox(height: 12),
+                          const SizedBox(height: 12),
 
-                              SizedBox(
-                                height:
-                                    MediaQuery.of(context).size.height * 0.58,
-                                child: Center(
-                                  child: _buildWoodFrame(
-                                    child: GameGridWidget(
-                                      game: _stateManager.game!,
-                                      onTileTap: handleTap,
-                                      onTileLongPress: handleFlag,
-                                    ),
-                                  ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 18),
-                              GameActionButtons(
-                                compact: isCompact,
-                                isHintMode: _stateManager.isHintMode,
-                                canUseHint:
-                                    _stateManager.game!.hintCount > 0 &&
-                                    !_stateManager.game!.isGameOver,
-                                onHintPressed: () {
-                                  setState(() {
-                                    _stateManager.isHintMode =
-                                        !_stateManager.isHintMode;
-                                  });
-                                },
-                                onRestartPressed: _restartGame,
-                                hintOffset: _animationManager.hintOffset,
-                                restartOffset: _animationManager.restartOffset,
-                                // 60 = banner ad height, plus system nav bar
-                                bottomPadding: 60 + MediaQuery.of(context).padding.bottom,
-                              ),
-                            ],
+                          _buildWoodFrame(
+                            child: GameGridWidget(
+                              game: _stateManager.game!,
+                              onTileTap: handleTap,
+                              onTileLongPress: handleFlag,
+                            ),
                           ),
-                        ),
+
+                          const SizedBox(height: 12),
+                          GameActionButtons(
+                            compact: isCompact,
+                            isHintMode: _stateManager.isHintMode,
+                            canUseHint:
+                                _stateManager.game!.hintCount > 0 &&
+                                !_stateManager.game!.isGameOver,
+                            onHintPressed: () {
+                              setState(() {
+                                _stateManager.isHintMode =
+                                    !_stateManager.isHintMode;
+                              });
+                            },
+                            onRestartPressed: _restartGame,
+                            hintOffset: _animationManager.hintOffset,
+                            restartOffset: _animationManager.restartOffset,
+                            // On mobile: reserve space for banner ad (60px) + system nav bar.
+                            // On web: no banner ad, no extra padding needed.
+                            bottomPadding: kIsWeb ? 0 : 60 + MediaQuery.of(context).padding.bottom,
+                          ),
+                        ],
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
