@@ -20,6 +20,7 @@ class AuthService extends ChangeNotifier {
   String? _email;
   String? _userId;
   String? _countryFlag;
+  String? _authProvider; // 'local', 'facebook', 'apple'
   bool _isLoggedIn = false;
   bool _isAuthenticated = false;
 
@@ -29,7 +30,9 @@ class AuthService extends ChangeNotifier {
   String? get email => _email;
   String? get userId => _userId;
   String? get countryFlag => _countryFlag;
+  String? get authProvider => _authProvider;
   bool get isAuthenticated => _isAuthenticated;
+  bool get isSocialLogin => _authProvider == 'facebook' || _authProvider == 'apple';
 
   // Initialize auth state from stored preferences
   Future<void> initializeAuth() async {
@@ -41,6 +44,7 @@ class AuthService extends ChangeNotifier {
       _email = prefs.getString('email');
       _userId = prefs.getString('userId');
       _countryFlag = prefs.getString('country_flag');
+      _authProvider = prefs.getString('auth_provider') ?? 'local';
 
       if (_isLoggedIn && _token != null) {
         final online = await OfflineSyncService.isOnline();
@@ -71,12 +75,17 @@ class AuthService extends ChangeNotifier {
     String? email,
     String? userId,
     String? countryFlag,
+    String? authProvider,
   }) async {
+    // Clear any previous user's cached data so a new login always starts fresh.
+    OfflineSyncService.clearAllUserData();
+
     _username = username;
     _token = token;
     _email = email;
     _userId = userId;
     _countryFlag = countryFlag ?? ApiConstants.kNoCountry;
+    _authProvider = authProvider ?? 'local';
     _isAuthenticated = true;
     _isLoggedIn = true;
 
@@ -88,6 +97,7 @@ class AuthService extends ChangeNotifier {
     if (email != null) await prefs.setString('email', email);
     if (userId != null) await prefs.setString('userId', userId);
     await prefs.setString('country_flag', _countryFlag!);
+    await prefs.setString('auth_provider', _authProvider!);
 
     // Cache to Hive for offline use
     OfflineSyncService.cacheUserProfile(
@@ -125,6 +135,12 @@ class AuthService extends ChangeNotifier {
         _username = data['username'];
         _email = data['email'];
         _countryFlag = data['country_flag'] ?? ApiConstants.kNoCountry;
+        final authMethod = data['auth_method'];
+        if (authMethod != null && authMethod != 'traditional') {
+          _authProvider = authMethod;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('auth_provider', _authProvider!);
+        }
 
         // Save to SharedPreferences
         final prefs = await SharedPreferences.getInstance();
@@ -147,7 +163,9 @@ class AuthService extends ChangeNotifier {
 
         // Update SettingsService with country flag
         final settingsService = SettingsService();
-        settingsService.setCountryFlagFromAuth(_countryFlag ?? ApiConstants.kNoCountry);
+        settingsService.setCountryFlagFromAuth(
+          _countryFlag ?? ApiConstants.kNoCountry,
+        );
 
         notifyListeners();
       } else if (response.statusCode == 401 || response.statusCode == 403) {
@@ -227,6 +245,7 @@ class AuthService extends ChangeNotifier {
     _email = null;
     _userId = null;
     _countryFlag = null;
+    _authProvider = null;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isLoggedIn', false);
@@ -235,6 +254,9 @@ class AuthService extends ChangeNotifier {
     await prefs.remove('email');
     await prefs.remove('userId');
     await prefs.remove('country_flag');
+    await prefs.remove('auth_provider');
+
+    OfflineSyncService.clearAllUserData();
 
     notifyListeners();
   }
@@ -312,6 +334,7 @@ class AuthService extends ChangeNotifier {
     _email = null;
     _userId = null;
     _countryFlag = null;
+    _authProvider = null;
 
     // Clear shared preferences
     final prefs = await SharedPreferences.getInstance();
@@ -321,9 +344,11 @@ class AuthService extends ChangeNotifier {
     await prefs.remove('email');
     await prefs.remove('userId');
     await prefs.remove('country_flag');
+    await prefs.remove('auth_provider');
 
-    // Clear Hive cache
-    OfflineSyncService.clearUserProfile();
+    // Clear all Hive caches (stats, score, game state, pending results)
+    // so a new user doesn't inherit the previous user's data.
+    OfflineSyncService.clearAllUserData();
 
     notifyListeners();
   }
@@ -387,16 +412,17 @@ class AuthService extends ChangeNotifier {
   }
 
   // Delete account
-  Future<bool> deleteAccount(String password) async {
+  Future<bool> deleteAccount({String? password}) async {
     try {
       if (_token == null) {
         print('❌ No auth token available');
         return false;
       }
 
-      final response = await ApiClient.delete('/user/profile', {
-        'password': password,
-      }).timeout(const Duration(seconds: 10));
+      final body = isSocialLogin ? <String, dynamic>{} : <String, dynamic>{'password': password ?? ''};
+      final response = await ApiClient.delete('/user/profile', body).timeout(
+        const Duration(seconds: 10),
+      );
 
       if (response.statusCode == 200) {
         print('✅ Account deleted successfully');

@@ -115,7 +115,7 @@ class Game {
     }
   }
 
-  void reveal(int r, int c) {
+  void reveal(int r, int c, {bool isUserAction = true}) {
     if (isGameOver || board[r][c].isRevealed || board[r][c].isFlagged) return;
 
     board[r][c].isRevealed = true;
@@ -129,15 +129,17 @@ class Game {
       return;
     }
 
-    SoundManager.playReveal();
-    SoundManager.vibrateReveal();
+    if (isUserAction) {
+      SoundManager.playReveal();
+      SoundManager.vibrateReveal();
+    }
 
     if (board[r][c].adjacentBombs == 0) {
       for (int i = -1; i <= 1; i++) {
         for (int j = -1; j <= 1; j++) {
           int nr = r + i, nc = c + j;
           if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
-            reveal(nr, nc);
+            reveal(nr, nc, isUserAction: false);
           }
         }
       }

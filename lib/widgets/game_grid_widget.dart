@@ -24,7 +24,7 @@ class GameGridWidget extends StatelessWidget {
 
     // ✅ Make tiles larger on tablets
     const double minTile = 18.0;
-    const double maxTile = 56.0;
+    const double maxTile = 68.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {

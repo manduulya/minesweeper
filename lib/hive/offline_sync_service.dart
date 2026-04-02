@@ -3,6 +3,13 @@ import 'hive_service.dart';
 import '../services/api_service.dart';
 
 class OfflineSyncService {
+  /// Incremented every time all user data is cleared (logout / account switch).
+  /// In-flight background reconciles capture this value before their await and
+  /// discard their result if it has changed by the time they resume, preventing
+  /// a stale server response from overwriting freshly-loaded new-account data.
+  static int _cacheGeneration = 0;
+  static int get cacheGeneration => _cacheGeneration;
+
   /// Returns true if the device has an active network connection.
   static Future<bool> isOnline() async {
     final results = await Connectivity().checkConnectivity();
@@ -35,6 +42,17 @@ class OfflineSyncService {
 
   static void clearUserProfile() => HiveService.user.delete('profile');
 
+  /// Clears all user-specific cached data (stats, score, game state, pending
+  /// results). Call this on logout so a new user starts with a clean slate.
+  static void clearAllUserData() {
+    _cacheGeneration++; // invalidate any in-flight background reconciles
+    HiveService.user.delete('profile');
+    HiveService.stats.delete('stats');
+    HiveService.stats.delete('score');
+    HiveService.game.delete('current');
+    HiveService.pending.clear();
+  }
+
   // ─── Stats ─────────────────────────────────────────────────────────────────
 
   static void cacheStats(Map<String, dynamic> statsData) {
@@ -47,11 +65,17 @@ class OfflineSyncService {
     if (newScore != null) {
       final existing = getCachedScore() ?? {'score': 0, 'level': 0};
       final localScore = existing['score'] as int? ?? 0;
-      // Only overwrite the local score if the server value is at least as high.
-      // This prevents a stats refresh from rolling back a score that was
-      // earned offline and not yet pushed to the server.
-      if (newScore >= localScore) {
+      // Only keep the local score if it is strictly higher AND there are
+      // pending offline results that haven't been synced yet. Otherwise always
+      // trust the server value so a freshly-logged-in account (which may have
+      // fewer points than the previous user) gets its correct score cached.
+      final hasPendingResults = HiveService.pending.isNotEmpty;
+      if (!hasPendingResults || newScore >= localScore) {
         existing['score'] = newScore;
+        // Keep level in the score cache in sync with the authoritative stats
+        // value so the board always starts at the correct level after login.
+        final newLevel = statsData['level'] as int?;
+        if (newLevel != null) existing['level'] = newLevel;
         existing['updatedAt'] = DateTime.now().millisecondsSinceEpoch;
         HiveService.stats.put('score', existing);
       }

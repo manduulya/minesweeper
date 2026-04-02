@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class InterstitialAdService {
   static const String _roundCountKey = 'rounds_since_last_ad';
-  static const int _roundsPerAd = 3;
+  static const int _roundsPerAd = 5;
 
   // static String get _adUnitId => Platform.isIOS
   //     ? 'ca-app-pub-7775348743322565/8718307892'
@@ -35,7 +35,7 @@ class InterstitialAdService {
   }
 
   /// Call this at the end of every round (win or loss).
-  /// Shows the interstitial every 3 rounds, then preloads the next one.
+  /// Shows the interstitial every 5 rounds, then preloads the next one.
   Future<void> onRoundComplete() async {
     if (kIsWeb) return;
 

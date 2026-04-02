@@ -5,6 +5,8 @@ import '../services/auth_service.dart';
 import '../services/settings_service.dart';
 import '../service_utils/country_data.dart';
 import '../service_utils/constants.dart';
+import '../service_utils/error_handler.dart';
+import 'tutorial_screen.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -152,13 +154,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showSuccessSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    ErrorHandler().showSuccess(context, message);
   }
 
   void _showErrorSnackBar(String message) {
@@ -240,14 +236,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         _buildSettingsTile(
                           icon: Icons.flag,
                           title: 'Country',
-                          subtitle: (settingsService.userCountryFlagCode == null ||
-                                  settingsService.userCountryFlagCode == ApiConstants.kNoCountry ||
+                          subtitle:
+                              (settingsService.userCountryFlagCode == null ||
+                                  settingsService.userCountryFlagCode ==
+                                      ApiConstants.kNoCountry ||
                                   settingsService.userCountryFlagCode!.isEmpty)
                               ? 'Not set'
                               : settingsService.userCountry ?? 'Not set',
-                          trailing: (settingsService.userCountryFlagCode != null &&
-                                  settingsService.userCountryFlagCode != ApiConstants.kNoCountry &&
-                                  settingsService.userCountryFlagCode!.isNotEmpty)
+                          trailing:
+                              (settingsService.userCountryFlagCode != null &&
+                                  settingsService.userCountryFlagCode !=
+                                      ApiConstants.kNoCountry &&
+                                  settingsService
+                                      .userCountryFlagCode!
+                                      .isNotEmpty)
                               ? Text(
                                   settingsService.getCountryFlag(
                                     settingsService.userCountryFlagCode!,
@@ -292,6 +294,25 @@ class _SettingsPageState extends State<SettingsPage> {
                             onChanged: (value) =>
                                 settingsService.setVibration(value),
                             activeColor: Color(0xFF0B1E3D),
+                          ),
+                        ),
+                      ]),
+
+                      SizedBox(height: 24),
+
+                      // Help Section
+                      _buildSectionHeader('Help'),
+                      _buildSettingsCard([
+                        _buildSettingsTile(
+                          icon: Icons.school_outlined,
+                          title: 'How to Play',
+                          subtitle: 'Replay the tutorial',
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const TutorialScreen(
+                                launchGameOnComplete: false,
+                              ),
+                            ),
                           ),
                         ),
                       ]),
@@ -616,6 +637,8 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showDeleteAccountDialog() {
+    final authService = context.read<AuthService>();
+    final isSocial = authService.isSocialLogin;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -628,24 +651,26 @@ class _SettingsPageState extends State<SettingsPage> {
               'Are you sure you want to delete your account? This action cannot be undone.',
               style: TextStyle(fontSize: 14),
             ),
-            SizedBox(height: 16),
-            Text(
-              'Enter your password to confirm:',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-            ),
-            SizedBox(height: 8),
-            TextField(
-              controller: _deleteAccountPasswordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                border: OutlineInputBorder(),
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
+            if (!isSocial) ...[
+              SizedBox(height: 16),
+              Text(
+                'Enter your password to confirm:',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+              ),
+              SizedBox(height: 8),
+              TextField(
+                controller: _deleteAccountPasswordController,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                  border: OutlineInputBorder(),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
         actions: [
@@ -670,15 +695,15 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _deleteAccount() async {
-    if (_deleteAccountPasswordController.text.isEmpty) {
+    final authService = context.read<AuthService>();
+    if (!authService.isSocialLogin && _deleteAccountPasswordController.text.isEmpty) {
       _showErrorSnackBar('Please enter your password');
       return;
     }
 
     try {
-      final authService = context.read<AuthService>();
       final success = await authService.deleteAccount(
-        _deleteAccountPasswordController.text,
+        password: authService.isSocialLogin ? null : _deleteAccountPasswordController.text,
       );
 
       if (success) {

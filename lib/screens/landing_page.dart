@@ -45,6 +45,7 @@ class _LandingPageState extends State<LandingPage> {
     required Future<void> Function() authFn,
     required Future<Map<String, dynamic>> Function() apiFn,
     required void Function(bool) setLoading,
+    required String provider,
   }) async {
     final authService = context.read<AuthService>();
     setLoading(true);
@@ -58,6 +59,7 @@ class _LandingPageState extends State<LandingPage> {
         email: result['user']['email'],
         userId: result['user']['id']?.toString(),
         countryFlag: result['user']['country_flag'],
+        authProvider: provider,
       );
       _errorHandler.showSuccess(context, 'Welcome, ${result['user']['username']}!');
       Navigator.pushReplacement(
@@ -84,6 +86,7 @@ class _LandingPageState extends State<LandingPage> {
         identityToken: appleData!['identity_token'],
       ),
       setLoading: (v) => setState(() => _isAppleLoading = v),
+      provider: 'apple',
     );
   }
 
@@ -99,6 +102,7 @@ class _LandingPageState extends State<LandingPage> {
         email: fbData!['email'],
       ),
       setLoading: (v) => setState(() => _isFacebookLoading = v),
+      provider: 'facebook',
     );
   }
 

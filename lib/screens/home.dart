@@ -14,6 +14,7 @@ import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../service_utils/error_handler.dart';
 import '../hive/offline_sync_service.dart';
+import 'tutorial_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -305,20 +306,29 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                         ),
 
-                        IconButton(
-                          icon: _isLoggingOut
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
-                                    ),
-                                  ),
-                                )
-                              : const Icon(Icons.logout, color: Colors.white),
-                          onPressed: _isLoggingOut ? null : _handleLogout,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.settings, color: Colors.white),
+                              onPressed: _isLoading ? null : _navigateToSettings,
+                            ),
+                            IconButton(
+                              icon: _isLoggingOut
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(
+                                          Colors.white,
+                                        ),
+                                      ),
+                                    )
+                                  : const Icon(Icons.logout, color: Colors.white),
+                              onPressed: _isLoggingOut ? null : _handleLogout,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -395,9 +405,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onPressed: _isLoading
                                     ? null
                                     : () async {
+                                        final showTutorial =
+                                            await TutorialScreen.shouldShow();
+                                        if (!mounted) return;
                                         await Navigator.of(context).push(
                                           MaterialPageRoute(
-                                            builder: (_) => const GameBoard(),
+                                            builder: (_) => showTutorial
+                                                ? const TutorialScreen()
+                                                : const GameBoard(),
                                           ),
                                         );
                                         await _loadUserData();
@@ -480,9 +495,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   _buildSecondaryButton(
                                     context,
-                                    'Settings',
-                                    Icons.settings,
-                                    _isLoading ? null : _navigateToSettings,
+                                    'How to Play',
+                                    Icons.help_outline,
+                                    _isLoading
+                                        ? null
+                                        : () => Navigator.of(context).push(
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    const TutorialScreen(
+                                                  launchGameOnComplete: false,
+                                                ),
+                                              ),
+                                            ),
                                   ),
                                 ],
                               ),

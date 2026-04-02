@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:mine_master/managers/responsive_wrapper.dart';
 import '../services/auth_service.dart';
 import '../services/api_service.dart';
-import '../service_utils/country_data.dart';
 import '../service_utils/constants.dart';
 
 class LeaderboardPage extends StatefulWidget {
@@ -37,9 +36,10 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
       setState(() {
         _leaderboardData = data.map((item) {
           return LeaderboardUser(
-            username: item['username'] as String,
-            totalScore: item['total_score'] as int,
+            username: item['username'] as String? ?? '',
+            totalScore: (item['total_score'] ?? item['score'] ?? 0) as int,
             countryFlag: item['country_flag'] as String? ?? '',
+            level: (item['level'] ?? item['current_level'] ?? item['last_completed_level'] ?? 0) as int,
           );
         }).toList();
         _isLoading = false;
@@ -55,42 +55,16 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
   List<LeaderboardUser> _getSampleData() {
     return [
-      LeaderboardUser(
-        username: 'MineExpert',
-        totalScore: 125400,
-        countryFlag: 'us',
-      ),
-      LeaderboardUser(
-        username: 'BombDefuser',
-        totalScore: 118900,
-        countryFlag: 'ca',
-      ),
-      LeaderboardUser(
-        username: 'SafeClicker',
-        totalScore: 112300,
-        countryFlag: 'uk',
-      ),
-      LeaderboardUser(
-        username: 'MineMaster',
-        totalScore: 108700,
-        countryFlag: 'de',
-      ),
-      LeaderboardUser(
-        username: 'FieldExplorer',
-        totalScore: 104200,
-        countryFlag: 'fr',
-      ),
+      LeaderboardUser(username: 'MineExpert',    totalScore: 125400, countryFlag: 'us', level: 12),
+      LeaderboardUser(username: 'BombDefuser',   totalScore: 118900, countryFlag: 'ca', level: 11),
+      LeaderboardUser(username: 'SafeClicker',   totalScore: 112300, countryFlag: 'uk', level: 10),
+      LeaderboardUser(username: 'MineMaster',    totalScore: 108700, countryFlag: 'de', level: 9),
+      LeaderboardUser(username: 'FieldExplorer', totalScore: 104200, countryFlag: 'fr', level: 8),
     ];
   }
 
   bool _hasCountry(String flagCode) =>
       flagCode.isNotEmpty && flagCode != ApiConstants.kNoCountry;
-
-  String _getCountryName(String flagCode) {
-    if (!_hasCountry(flagCode)) return '';
-    final country = CountryHelper.getCountryByFlagCode(flagCode);
-    return country?.name ?? '';
-  }
 
   String _getFlagEmoji(String countryCode) {
     if (!_hasCountry(countryCode)) return '';
@@ -103,19 +77,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
 
     return String.fromCharCode(0x1F1E6 + (firstChar - 65)) +
         String.fromCharCode(0x1F1E6 + (secondChar - 65));
-  }
-
-  Color _getRankColor(int rank) {
-    switch (rank) {
-      case 1:
-        return Color(0xFFFFD700);
-      case 2:
-        return Color(0xFFC0C0C0);
-      case 3:
-        return Color(0xFFCD7F32);
-      default:
-        return Color(0xFF0B1E3D);
-    }
   }
 
   Widget _getRankIcon(int rank) {
@@ -271,7 +232,7 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                             ),
                           ),
 
-                          // Leaderboard list
+                          // Leaderboard table
                           Expanded(
                             child: _leaderboardData.isEmpty
                                 ? Center(
@@ -283,162 +244,25 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                       ),
                                     ),
                                   )
-                                : ListView.builder(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                    ),
-                                    itemCount: _leaderboardData.length,
-                                    itemBuilder: (context, index) {
-                                      final user = _leaderboardData[index];
-                                      final rank = index + 1;
-                                      final isCurrentUser =
-                                          user.username == currentUsername;
-
-                                      return Container(
-                                        margin: EdgeInsets.only(bottom: 8),
-                                        decoration: BoxDecoration(
-                                          color: isCurrentUser
-                                              ? Color(
-                                                  0xFF0B1E3D,
-                                                ).withValues(alpha: .1)
-                                              : Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                          border: isCurrentUser
-                                              ? Border.all(
-                                                  color: Color(0xFF0B1E3D),
-                                                  width: 2,
-                                                )
-                                              : null,
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withValues(
-                                                alpha: .05,
-                                              ),
-                                              blurRadius: 4,
-                                              offset: Offset(0, 1),
-                                            ),
-                                          ],
+                                : Column(
+                                    children: [
+                                      _buildTableHeader(),
+                                      const Divider(height: 1, thickness: 1, color: Color(0x220B1E3D)),
+                                      Expanded(
+                                        child: ListView.builder(
+                                          padding: EdgeInsets.zero,
+                                          itemCount: _leaderboardData.length,
+                                          itemBuilder: (context, index) {
+                                            final user = _leaderboardData[index];
+                                            return _buildTableRow(
+                                              user,
+                                              index + 1,
+                                              user.username == currentUsername,
+                                            );
+                                          },
                                         ),
-                                        child: ListTile(
-                                          contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 16,
-                                            vertical: 8,
-                                          ),
-                                          leading: Container(
-                                            width: 50,
-                                            height: 50,
-                                            decoration: BoxDecoration(
-                                              color: rank <= 3
-                                                  ? _getRankColor(
-                                                      rank,
-                                                    ).withValues(alpha: .1)
-                                                  : Color(
-                                                      0xFF0B1E3D,
-                                                    ).withValues(alpha: .1),
-                                              borderRadius:
-                                                  BorderRadius.circular(25),
-                                            ),
-                                            child: Center(
-                                              child: _getRankIcon(rank),
-                                            ),
-                                          ),
-                                          title: Row(
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  user.username.isEmpty
-                                                      ? ''
-                                                      : '${user.username[0].toUpperCase()}${user.username.substring(1)}',
-                                                  style: TextStyle(
-                                                    color: Color(0xFF0B1E3D),
-                                                    fontWeight: isCurrentUser
-                                                        ? FontWeight.bold
-                                                        : FontWeight.w600,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                              if (isCurrentUser)
-                                                Container(
-                                                  padding: EdgeInsets.symmetric(
-                                                    horizontal: 8,
-                                                    vertical: 2,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: Color(0xFF0B1E3D),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    'YOU',
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontSize: 10,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ),
-                                            ],
-                                          ),
-                                          subtitle: _getCountryName(user.countryFlag).isNotEmpty
-                                              ? Text(
-                                                  _getCountryName(user.countryFlag),
-                                                  style: TextStyle(
-                                                    color: Color(
-                                                      0xFF0B1E3D,
-                                                    ).withValues(alpha: .7),
-                                                    fontSize: 14,
-                                                  ),
-                                                )
-                                              : null,
-                                          trailing: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              if (_getFlagEmoji(user.countryFlag).isNotEmpty) ...[
-                                                Text(
-                                                  _getFlagEmoji(user.countryFlag),
-                                                  style: TextStyle(fontSize: 24),
-                                                ),
-                                                SizedBox(width: 12),
-                                              ],
-                                              Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.end,
-                                                children: [
-                                                  Text(
-                                                    _formatScore(
-                                                      user.totalScore,
-                                                    ),
-                                                    style: TextStyle(
-                                                      color: Color(0xFF0B1E3D),
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 16,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    'points',
-                                                    style: TextStyle(
-                                                      color: Color(
-                                                        0xFF0B1E3D,
-                                                      ).withValues(alpha: .6),
-                                                      fontSize: 12,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
+                                      ),
+                                    ],
                                   ),
                           ),
                         ],
@@ -487,13 +311,126 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     return _formatScore(_leaderboardData.first.totalScore);
   }
 
-  String _formatScore(int score) {
-    if (score >= 1000000) {
-      return '${(score / 1000000).toStringAsFixed(1)}M';
-    } else if (score >= 1000) {
-      return '${(score / 1000).toStringAsFixed(1)}K';
-    }
-    return score.toString();
+  String _formatScore(int score) => score.toString();
+
+  Widget _buildTableHeader() {
+    const style = TextStyle(
+      color: Color(0xFF0B1E3D),
+      fontSize: 11,
+      fontWeight: FontWeight.bold,
+      letterSpacing: 0.5,
+    );
+    return Container(
+      color: const Color(0xFF0B1E3D).withValues(alpha: 0.07),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(width: 44, child: Text('Rank',   style: style, textAlign: TextAlign.center)),
+          SizedBox(width: 32),
+          Expanded(           child: Text('Player', style: style)),
+          SizedBox(width: 52, child: Text('Lvl',    style: style, textAlign: TextAlign.center)),
+          SizedBox(width: 88, child: Text('Score',  style: style, textAlign: TextAlign.right)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTableRow(LeaderboardUser user, int rank, bool isCurrentUser) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isCurrentUser
+            ? const Color(0xFF0B1E3D).withValues(alpha: 0.07)
+            : null,
+        border: isCurrentUser
+            ? const Border(
+                left: BorderSide(color: Color(0xFF0B1E3D), width: 3),
+              )
+            : const Border(
+                bottom: BorderSide(color: Color(0x11000000), width: 1),
+              ),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      child: Row(
+        children: [
+          // Rank
+          SizedBox(width: 44, child: Center(child: _getRankIcon(rank))),
+          // Flag
+          SizedBox(
+            width: 32,
+            child: Center(
+              child: Text(
+                _getFlagEmoji(user.countryFlag),
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ),
+          // Player
+          Expanded(
+            child: Row(
+              children: [
+                Flexible(
+                  child: Text(
+                    user.username.isEmpty
+                        ? ''
+                        : '${user.username[0].toUpperCase()}${user.username.substring(1)}',
+                    style: TextStyle(
+                      color: const Color(0xFF0B1E3D),
+                      fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (isCurrentUser) ...[
+                  const SizedBox(width: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0B1E3D),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      'YOU',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          // Level
+          SizedBox(
+            width: 52,
+            child: Text(
+              '${user.level}',
+              style: TextStyle(
+                color: const Color(0xFF0B1E3D).withValues(alpha: 0.65),
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          // Score
+          SizedBox(
+            width: 88,
+            child: Text(
+              '${user.totalScore} pts',
+              style: const TextStyle(
+                color: Color(0xFF0B1E3D),
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -501,10 +438,12 @@ class LeaderboardUser {
   final String username;
   final int totalScore;
   final String countryFlag;
+  final int level;
 
   LeaderboardUser({
     required this.username,
     required this.totalScore,
     required this.countryFlag,
+    this.level = 0,
   });
 }
