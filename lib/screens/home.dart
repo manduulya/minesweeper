@@ -342,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       onRefresh: _loadUserData,
                       color: const Color(0xFFFFDD00),
                       child: SingleChildScrollView(
-                        physics: const AlwaysScrollableScrollPhysics(),
+                        physics: const NeverScrollableScrollPhysics(),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 24),
                           child: Column(
@@ -475,38 +475,41 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               // Secondary buttons
                               Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
                                 children: [
-                                  _buildSecondaryButton(
-                                    context,
-                                    'Leaderboard',
-                                    Icons.leaderboard,
-                                    _isLoading
-                                        ? null
-                                        : () {
-                                            Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const LeaderboardPage(),
-                                              ),
-                                            );
-                                          },
+                                  Expanded(
+                                    child: _buildSecondaryButton(
+                                      context,
+                                      'Leaderboard',
+                                      Icons.leaderboard,
+                                      _isLoading
+                                          ? null
+                                          : () {
+                                              Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const LeaderboardPage(),
+                                                ),
+                                              );
+                                            },
+                                    ),
                                   ),
-                                  _buildSecondaryButton(
-                                    context,
-                                    'How to Play',
-                                    Icons.help_outline,
-                                    _isLoading
-                                        ? null
-                                        : () => Navigator.of(context).push(
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    const TutorialScreen(
-                                                  launchGameOnComplete: false,
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: _buildSecondaryButton(
+                                      context,
+                                      'How to Play',
+                                      Icons.help_outline,
+                                      _isLoading
+                                          ? null
+                                          : () => Navigator.of(context).push(
+                                                MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const TutorialScreen(
+                                                    launchGameOnComplete: false,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -598,7 +601,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 : Colors.grey.withValues(alpha: 0.3),
           ),
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
       ),
     );
   }
