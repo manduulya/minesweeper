@@ -381,7 +381,7 @@ class _LandingPageState extends State<LandingPage> {
             shadowColor: Colors.transparent,
           ),
           child: Container(
-            width: 280,
+            width: double.infinity,
             height: 48,
             decoration: BoxDecoration(
               boxShadow: [
@@ -457,49 +457,55 @@ class _LandingPageState extends State<LandingPage> {
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
             ),
-            child: Container(
-              width: 280,
-              height: 48,
-              decoration: BoxDecoration(
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFFFFA200).withValues(alpha: 0.45),
-                    blurRadius: 10,
-                    offset: const Offset(0, 0),
-                  ),
-                ],
-                color: (_isLoading || _isFacebookLoading)
-                    ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
-                    : const Color(0xFF0B1E3D),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: _isFacebookLoading
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
-                          Icon(
-                            Icons.facebook,
-                            color: Color(0xFFFFDD00),
-                            size: 26,
-                          ),
-                          SizedBox(width: 12),
-                          Text(
-                            'LOGIN WITH FACEBOOK',
-                            style: TextStyle(
-                              color: Color(0xFFFFDD00),
-                              fontFamily: 'Acsioma',
-                              fontSize: 18,
-                              fontWeight: FontWeight.normal,
-                            ),
-                          ),
-                        ],
+            child: Builder(
+              builder: (context) {
+                final screenWidth = MediaQuery.of(context).size.width;
+                final fontSize = screenWidth < 380 ? 14.0 : 18.0;
+                return Container(
+                  width: double.infinity,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFFFA200).withValues(alpha: 0.45),
+                        blurRadius: 10,
+                        offset: const Offset(0, 0),
                       ),
-              ),
+                    ],
+                    color: (_isLoading || _isFacebookLoading)
+                        ? const Color(0xFF0B1E3D).withValues(alpha: 0.6)
+                        : const Color(0xFF0B1E3D),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: _isFacebookLoading
+                        ? const CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(
+                                Icons.facebook,
+                                color: Color(0xFFFFDD00),
+                                size: 26,
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                'LOGIN WITH FACEBOOK',
+                                style: TextStyle(
+                                  color: const Color(0xFFFFDD00),
+                                  fontFamily: 'Acsioma',
+                                  fontSize: fontSize,
+                                  fontWeight: FontWeight.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                );
+              },
             ),
           ),
 
