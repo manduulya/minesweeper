@@ -516,8 +516,9 @@ class _TutorialScreenState extends State<TutorialScreen>
           Container(color: Colors.black.withValues(alpha: 0.38)),
           SafeArea(
             child: ResponsiveWrapper(
-              child: Column(
-                children: [
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
                   // Header
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
@@ -557,24 +558,20 @@ class _TutorialScreenState extends State<TutorialScreen>
                   _buildStepDots(),
                   const SizedBox(height: 16),
 
-                  SizedBox(
-                    height: 195,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _buildInstructionCard(),
-                    ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildInstructionCard(),
                   ),
 
                   const SizedBox(height: 20),
 
-                  Expanded(
-                    child: Center(
-                      child: _buildWoodFrame(child: _buildGrid()),
-                    ),
+                  Center(
+                    child: _buildWoodFrame(child: _buildGrid()),
                   ),
 
                   const SizedBox(height: 16),
                 ],
+              ),
               ),
             ),
           ),
