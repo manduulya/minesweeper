@@ -8,10 +8,7 @@ import '../hive/offline_sync_service.dart';
 class GameServerService {
   final ApiService _apiService = ApiService();
 
-  // Guard so only one background server reconcile runs at a time.
-  static bool _isReconciling = false;
-
-  /// No-op kept for call-site compatibility — score is now always read
+/// No-op kept for call-site compatibility — score is now always read
   /// directly from Hive so there is no in-memory TTL cache to invalidate.
   void invalidateScoreCache() {}
 
@@ -194,57 +191,42 @@ class GameServerService {
     }
   }
 
-  /// Always returns the Hive score immediately — no network wait.
-  ///
-  /// Hive is the single source of truth for score. When there are no pending
-  /// offline results a background reconcile checks the server: if the server
-  /// is ahead (e.g. played on another device) Hive is updated silently so the
-  /// next session picks up the correct value. If Hive is ahead (offline games
-  /// not yet synced) the server fetch is skipped entirely — the pending queue
-  /// will flush those results when home.dart next runs _loadUserData().
+  /// Fetches the score from the server first (authoritative source for level).
+  /// Updates Hive with the server result so subsequent reads are correct.
+  /// Falls back to Hive if the server is unreachable (offline scenario).
+  /// If Hive is ahead due to unsynced pending results, keeps the local score
+  /// but always trusts the server's level.
   Future<Map<String, dynamic>?> getUserScore() async {
-    final hive = OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
-
-    // Only reconcile when we know Hive is not ahead of the server.
-    if (OfflineSyncService.pendingCount == 0 && !_isReconciling) {
-      _reconcileScoreWithServer();
-    }
-
-    return Map<String, dynamic>.from(hive);
-  }
-
-  /// Fetches the server score in the background and updates Hive if the
-  /// server is ahead (multi-device scenario). Never overwrites a Hive score
-  /// that is already higher — that case means pending results exist and the
-  /// pending queue is responsible for pushing them.
-  Future<void> _reconcileScoreWithServer() async {
-    _isReconciling = true;
-    // Capture the generation before the await so we can detect an account
-    // switch that happened while the network request was in-flight.
     final generationAtStart = OfflineSyncService.cacheGeneration;
     try {
       final result = await _apiService
           .getUserScore()
           .timeout(const Duration(seconds: 5));
-      if (result == null) return;
 
-      // If clearAllUserData() was called while we awaited (account switch /
-      // logout), discard the response — it belongs to the previous user.
-      if (OfflineSyncService.cacheGeneration != generationAtStart) return;
+      if (result == null) {
+        return OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
+      }
+
+      // Discard if account switched while awaiting.
+      if (OfflineSyncService.cacheGeneration != generationAtStart) {
+        return OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
+      }
 
       final serverScore = result['score'] as int? ?? 0;
-      final localScore =
-          OfflineSyncService.getCachedScore()?['score'] as int? ?? 0;
+      final serverLevel = result['level'] as int? ?? 0;
+      final hive = OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
+      final localScore = hive['score'] as int? ?? 0;
+      final hasPending = OfflineSyncService.pendingCount > 0;
 
-      if (serverScore > localScore) {
-        // Server is ahead — update Hive so the next load is correct.
-        OfflineSyncService.cacheScore(Map<String, dynamic>.from(result));
-      }
-      // localScore >= serverScore: Hive is already correct, nothing to do.
+      // Always trust server level. For score, keep local if pending results
+      // haven't synced yet and local is higher (offline-earned points).
+      final resolvedScore = (hasPending && localScore > serverScore) ? localScore : serverScore;
+      final resolved = {'score': resolvedScore, 'level': serverLevel};
+      OfflineSyncService.cacheScore(resolved);
+      return resolved;
     } catch (_) {
-      // Network unreachable — Hive value stands.
-    } finally {
-      _isReconciling = false;
+      // Network unreachable — fall back to Hive.
+      return OfflineSyncService.getCachedScore() ?? {'score': 0, 'level': 0};
     }
   }
 

@@ -111,42 +111,23 @@ class _GameActionButtonsState extends State<GameActionButtons>
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: widget.watchAdForHintMode
-            ? () async {
-                widget.onWatchAdForHintPressed?.call();
-                return Future.value();
-              }
-            : widget.canUseHint
+        onPressed: widget.canUseHint
             ? () async {
                 widget.onHintPressed();
                 return Future.value();
               }
             : () async => Future.value(),
-        child: AnimatedBuilder(
-          animation: _glowAnimation,
-          builder: (context, child) {
-            final glow = widget.watchAdForHintMode ? _glowAnimation.value : 0.0;
-            return CustomPaint(
-              painter: widget.watchAdForHintMode
-                  ? _BorderGlowPainter(glow: glow, radius: 12)
-                  : null,
-              child: Container(
-                width: width,
-                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-                decoration: BoxDecoration(
-                  color: widget.isHintMode
-                      ? const Color(0xFF1B2844)
-                      : widget.watchAdForHintMode
-                      ? Colors.blue.withValues(alpha: 0.15)
-                      : widget.canUseHint
-                      ? Colors.blue.withValues(alpha:0.1)
-                      : Colors.grey.withValues(alpha:0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: child,
-              ),
-            );
-          },
+        child: Container(
+          width: width,
+          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+          decoration: BoxDecoration(
+            color: widget.isHintMode
+                ? const Color(0xFF1B2844)
+                : widget.canUseHint
+                ? Colors.blue.withValues(alpha: 0.1)
+                : Colors.grey.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -159,18 +140,12 @@ class _GameActionButtonsState extends State<GameActionButtons>
               SizedBox(width: widget.compact ? 6 : 8),
               Flexible(
                 child: Text(
-                  widget.watchAdForHintMode
-                      ? 'Watch Ad'
-                      : widget.isHintMode
-                      ? 'Hint Mode'
-                      : 'Use Hint',
+                  widget.isHintMode ? 'Hint Mode' : 'Use Hint',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: FontWeight.bold,
-                    color: widget.watchAdForHintMode
-                        ? Colors.blue
-                        : widget.isHintMode
+                    color: widget.isHintMode
                         ? Colors.white
                         : widget.canUseHint
                         ? Colors.blue
