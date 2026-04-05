@@ -13,15 +13,20 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
+        env:
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
         with:
           python-version: "3.12"
           cache: "pip"
+          cache-dependency-path: ".github/scripts/requirements.txt"
 
       - name: Install dependencies
-        run: pip install anthropic==0.40.0
+        run: pip install -r .github/scripts/requirements.txt
 
       - name: Get PR diff
         env:
