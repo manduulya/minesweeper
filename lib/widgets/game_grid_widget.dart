@@ -88,6 +88,8 @@ class GameGridWidget extends StatelessWidget {
                           tile: game.board[r][c],
                           onTap: () => onTileTap(r, c),
                           onLongPress: () => onTileLongPress(r, c),
+                          gridRow: r - minRow,
+                          gridCol: c - minCol,
                         ),
                       ),
                     ),
