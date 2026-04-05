@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -36,6 +37,15 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
   bool _wasRevealed = false;
   bool _wasAnimating = false;
   bool _wasFlagged = false;
+
+  // Overlay entries and the peel delay timer are tracked so they can be
+  // cleaned up in dispose() if the widget leaves the tree mid-animation.
+  final List<OverlayEntry> _activeOverlays = [];
+  Timer? _peelTimer;
+
+  // Global cap: never run more than 24 peel particles at once across all tiles.
+  static int _activePeelCount = 0;
+  static const int _maxPeelParticles = 24;
 
   @override
   void initState() {
@@ -110,23 +120,30 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
       final center = renderBox.localToGlobal(Offset.zero) +
           Offset(renderBox.size.width / 2, renderBox.size.height / 2);
 
-      OverlayEntry? entry;
+      late OverlayEntry entry;
       entry = OverlayEntry(
         builder: (ctx) => _FlagRipple(
           center: center,
-          onComplete: () { try { entry?.remove(); } catch (_) {} },
+          onComplete: () {
+            _activeOverlays.remove(entry);
+            try { entry.remove(); } catch (_) {}
+          },
         ),
       );
+      _activeOverlays.add(entry);
       Overlay.of(context).insert(entry);
     });
   }
 
   void _triggerPeelAnimation() {
+    // Respect the global cap to avoid spawning hundreds of particles at once.
+    if (_activePeelCount >= _maxPeelParticles) return;
+
     // Stagger by grid position: each row is 30 ms later, each col adds 8 ms.
     // This creates a top-to-bottom waterfall when many tiles reveal at once.
     final delayMs = widget.gridRow * 30 + widget.gridCol * 8;
 
-    Future.delayed(Duration(milliseconds: delayMs), () {
+    _peelTimer = Timer(Duration(milliseconds: delayMs), () {
       if (!mounted) return;
       final renderBox = context.findRenderObject() as RenderBox?;
       if (renderBox == null) return;
@@ -134,20 +151,31 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
       final globalOffset = renderBox.localToGlobal(Offset.zero);
       final size = renderBox.size;
 
-      OverlayEntry? entry;
+      _activePeelCount++;
+      late OverlayEntry entry;
       entry = OverlayEntry(
         builder: (ctx) => _PeelParticle(
           startOffset: globalOffset,
           tileSize: size,
-          onComplete: () { try { entry?.remove(); } catch (_) {} },
+          onComplete: () {
+            _activePeelCount--;
+            _activeOverlays.remove(entry);
+            try { entry.remove(); } catch (_) {}
+          },
         ),
       );
+      _activeOverlays.add(entry);
       Overlay.of(context).insert(entry);
     });
   }
 
   @override
   void dispose() {
+    _peelTimer?.cancel();
+    for (final entry in _activeOverlays) {
+      try { entry.remove(); } catch (_) {}
+    }
+    _activeOverlays.clear();
     _pulseController.dispose();
     _scaleController.dispose();
     super.dispose();
@@ -218,7 +246,7 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: glowColor.withOpacity(glowOpacity),
+                              color: glowColor.withValues(alpha: glowOpacity),
                               blurRadius: 8,
                               spreadRadius: 2,
                             ),
@@ -240,7 +268,7 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
                   ? [
                       BoxShadow(
                         color:
-                            _colorAnimation.value?.withOpacity(0.6) ??
+                            _colorAnimation.value?.withValues(alpha: 0.6) ??
                             Colors.transparent,
                         blurRadius: 8.0 * _pulseAnimation.value,
                         spreadRadius: 2.0 * _pulseAnimation.value,

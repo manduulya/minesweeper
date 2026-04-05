@@ -12,6 +12,9 @@ if not diff.strip():
 if len(diff) > 30000:
     diff = diff[:30000] + "\n\n[diff truncated — showing first 30 000 chars]"
 
+# Sanitize PR_TITLE to prevent prompt injection via a crafted PR title.
+pr_title = os.environ["PR_TITLE"][:200].replace("```", "")
+
 client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 message = client.messages.create(
@@ -23,7 +26,7 @@ message = client.messages.create(
             "content": (
                 "You are reviewing a Flutter/Dart pull request for **Mine Master**, "
                 "a minesweeper puzzle game.\n\n"
-                f"PR title: {os.environ['PR_TITLE']}\n\n"
+                f"PR title: {pr_title}\n\n"
                 "Review the following git diff and provide concise, actionable feedback. Focus on:\n"
                 "- Correctness and logic bugs\n"
                 "- Flutter/Dart best practices (widget lifecycle, state management, dispose)\n"
