@@ -51,6 +51,7 @@ class _GameBoardState extends State<GameBoard> {
   @override
   void dispose() {
     _rewardedAdService.dispose();
+    _interstitialAdService.dispose();
     super.dispose();
   }
 

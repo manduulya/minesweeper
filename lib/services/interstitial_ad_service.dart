@@ -72,4 +72,9 @@ class InterstitialAdService {
     _interstitialAd!.show();
     _interstitialAd = null;
   }
+
+  void dispose() {
+    _interstitialAd?.dispose();
+    _interstitialAd = null;
+  }
 }

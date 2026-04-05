@@ -18,7 +18,8 @@ class RewardedAdService {
   bool get isLoaded => _ad != null;
 
   Future<void> preloadAd() async {
-    if (kIsWeb || !Platform.isIOS && !Platform.isAndroid) return;
+    if (kIsWeb) return;
+    if (!Platform.isIOS && !Platform.isAndroid) return;
     if (_ad != null) return; // already loaded
 
     RewardedAd.load(

@@ -48,7 +48,7 @@ class _GameActionButtonsState extends State<GameActionButtons>
     _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
     );
-    if (widget.tryAgainMode || widget.watchAdForHintMode) {
+    if (widget.tryAgainMode) {
       _glowController.repeat(reverse: true);
     }
   }
@@ -58,7 +58,7 @@ class _GameActionButtonsState extends State<GameActionButtons>
   @override
   void didUpdateWidget(GameActionButtons oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final wasActive = oldWidget.tryAgainMode || oldWidget.watchAdForHintMode;
+    final wasActive = oldWidget.tryAgainMode;
     if (_anyGlowActive && !wasActive) {
       _glowController.repeat(reverse: true);
     } else if (!_anyGlowActive && wasActive) {
@@ -245,6 +245,7 @@ class _GameActionButtonsState extends State<GameActionButtons>
 class _BorderGlowPainter extends CustomPainter {
   final double glow;
   final double radius;
+  final Paint _paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5;
 
   _BorderGlowPainter({required this.glow, required this.radius});
 
@@ -255,14 +256,11 @@ class _BorderGlowPainter extends CustomPainter {
       Radius.circular(radius),
     );
 
-    canvas.drawRRect(
-      rrect,
-      Paint()
-        ..color = Colors.orange.withValues(alpha: 0.6 + 0.4 * glow)
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.5
-        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + 6 * glow),
-    );
+    _paint
+      ..color = Colors.orange.withValues(alpha: 0.6 + 0.4 * glow)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + 6 * glow);
+
+    canvas.drawRRect(rrect, _paint);
   }
 
   @override
