@@ -5,6 +5,7 @@ import 'managers/game_animation_manager.dart';
 import 'managers/game_state_manager.dart';
 import 'managers/game_server_service.dart';
 import 'services/interstitial_ad_service.dart';
+import 'services/rewarded_ad_service.dart';
 import 'widgets/game_header_bar.dart';
 import 'widgets/game_stats_widget.dart';
 import 'widgets/game_action_buttons.dart';
@@ -28,6 +29,7 @@ class _GameBoardState extends State<GameBoard> {
   final GameStateManager _stateManager = GameStateManager();
   final GameServerService _serverService = GameServerService();
   final InterstitialAdService _interstitialAdService = InterstitialAdService();
+  final RewardedAdService _rewardedAdService = RewardedAdService();
 
   // Score captured at the exact moment of a win — before any async work that
   // could theoretically disturb game.score. Used by _startNextLevel so the
@@ -40,6 +42,17 @@ class _GameBoardState extends State<GameBoard> {
     _loadLevelsAndStart();
     _animationManager.startAnimations(setState, mounted);
     _interstitialAdService.preloadAd();
+    _rewardedAdService.onAdLoadStateChanged = () {
+      if (mounted) setState(() {});
+    };
+    _rewardedAdService.preloadAd();
+  }
+
+  @override
+  void dispose() {
+    _rewardedAdService.dispose();
+    _interstitialAdService.dispose();
+    super.dispose();
   }
 
   // ============================================
@@ -50,6 +63,7 @@ class _GameBoardState extends State<GameBoard> {
     // Force a fresh score fetch for this session — the static TTL cache may
     // hold a stale value from the previous board open (e.g. pre-win score).
     _serverService.invalidateScoreCache();
+    _viewingBoard = false;
     _stateManager.levels = await loadLevels();
 
     await _loadActiveGame();
@@ -517,7 +531,10 @@ class _GameBoardState extends State<GameBoard> {
 
   void _startNextLevel() {
     _stateManager.isFinishingGame = false;
-    setState(() => _stateManager.inputLocked = false);
+    setState(() {
+      _stateManager.inputLocked = false;
+      _viewingBoard = false;
+    });
 
     if (_stateManager.currentLevelIndex + 1 < _stateManager.levels.length) {
       _stateManager.currentLevelIndex++;
@@ -538,13 +555,44 @@ class _GameBoardState extends State<GameBoard> {
   }
 
 
+  bool _viewingBoard = false;
+
+  Future<void> _onWatchAdForHint() async {
+    if (kIsWeb || !_rewardedAdService.isLoaded) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Free hints via ads are available on the mobile app.'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    await _rewardedAdService.showAd(
+      onRewarded: () {
+        if (!mounted || _stateManager.game == null) return;
+        setState(() => _stateManager.game!.hintCount++);
+        _updateServerGame();
+      },
+    );
+  }
+
   void _showGameOverDialog() {
+    if (_stateManager.game == null) return;
     _animationManager.replayAnimations(setState, mounted);
     DialogUtils.showGameOverDialog(
       context: context,
       game: _stateManager.game!,
-      onRetry: _restartGame,
+      onRetry: () {
+        setState(() => _viewingBoard = false);
+        _restartGame();
+      },
+      onViewBoard: () => setState(() => _viewingBoard = true),
     );
+  }
+
+  void _closeViewBoard() {
+    setState(() => _viewingBoard = false);
+    _restartGame();
   }
 
   void _showWinDialog() {
@@ -696,7 +744,10 @@ class _GameBoardState extends State<GameBoard> {
                                     !_stateManager.isHintMode;
                               });
                             },
-                            onRestartPressed: _restartGame,
+                            onRestartPressed: _closeViewBoard,
+                            tryAgainMode: _viewingBoard,
+                            watchAdForHintMode: !_viewingBoard,
+                            onWatchAdForHintPressed: _onWatchAdForHint,
                             hintOffset: _animationManager.hintOffset,
                             restartOffset: _animationManager.restartOffset,
                             // On mobile: reserve space for banner ad (60px) + system nav bar.

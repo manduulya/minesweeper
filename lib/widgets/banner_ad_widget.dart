@@ -6,8 +6,8 @@ String get _adUnitId => Platform.isIOS
     ? 'ca-app-pub-7775348743322565/6283716247'
     : 'ca-app-pub-7775348743322565/7129894055';
 // String get _adUnitId => Platform.isIOS
-  //  ? 'ca-app-pub-3940256099942544/2934735716' // iOS banner test
-  //  : 'ca-app-pub-3940256099942544/6300978111'; // Android banner test
+//   ? 'ca-app-pub-3940256099942544/2934735716' // iOS banner test
+//   : 'ca-app-pub-3940256099942544/6300978111'; // Android banner test
 
 class BannerAdWidget extends StatefulWidget {
   const BannerAdWidget({super.key});
@@ -29,7 +29,8 @@ class _BannerAdWidgetState extends State<BannerAdWidget> {
   }
 
   Future<void> _loadAd(int width) async {
-    final adSize = await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
+    final adSize =
+        await AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(width);
     if (!mounted) return;
     if (adSize == null) return;
 
