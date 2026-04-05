@@ -191,12 +191,22 @@ class GameServerService {
     }
   }
 
+  // Deduplicates concurrent calls — all callers share the same in-flight request.
+  Future<Map<String, dynamic>?>? _pendingScoreFetch;
+
   /// Fetches the score from the server first (authoritative source for level).
   /// Updates Hive with the server result so subsequent reads are correct.
   /// Falls back to Hive if the server is unreachable (offline scenario).
   /// If Hive is ahead due to unsynced pending results, keeps the local score
   /// but always trusts the server's level.
-  Future<Map<String, dynamic>?> getUserScore() async {
+  Future<Map<String, dynamic>?> getUserScore() {
+    _pendingScoreFetch ??= _fetchScoreFromServer().whenComplete(() {
+      _pendingScoreFetch = null;
+    });
+    return _pendingScoreFetch!;
+  }
+
+  Future<Map<String, dynamic>?> _fetchScoreFromServer() async {
     final generationAtStart = OfflineSyncService.cacheGeneration;
     try {
       final result = await _apiService

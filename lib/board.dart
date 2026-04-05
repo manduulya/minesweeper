@@ -565,7 +565,7 @@ class _GameBoardState extends State<GameBoard> {
     }
     await _rewardedAdService.showAd(
       onRewarded: () {
-        if (_stateManager.game == null) return;
+        if (!mounted || _stateManager.game == null) return;
         setState(() => _stateManager.game!.hintCount++);
         _updateServerGame();
       },
@@ -573,6 +573,7 @@ class _GameBoardState extends State<GameBoard> {
   }
 
   void _showGameOverDialog() {
+    if (_stateManager.game == null) return;
     _animationManager.replayAnimations(setState, mounted);
     DialogUtils.showGameOverDialog(
       context: context,
