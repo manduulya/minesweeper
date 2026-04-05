@@ -48,6 +48,12 @@ class _GameBoardState extends State<GameBoard> {
     _rewardedAdService.preloadAd();
   }
 
+  @override
+  void dispose() {
+    _rewardedAdService.dispose();
+    super.dispose();
+  }
+
   // ============================================
   // INITIALIZATION & LEVEL LOADING
   // ============================================
@@ -558,6 +564,7 @@ class _GameBoardState extends State<GameBoard> {
     }
     await _rewardedAdService.showAd(
       onRewarded: () {
+        if (_stateManager.game == null) return;
         setState(() => _stateManager.game!.hintCount++);
         _updateServerGame();
       },

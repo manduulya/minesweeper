@@ -11,8 +11,7 @@ class ApiConstants {
       'https://mine-master-server-production.up.railway.app/api';
 
   // Current environment - change this based on your setup
-  static const String baseUrl =
-      localiOSSimulator; // use machine IP for physical Android device
+  static const String baseUrl = production;
 
   // Other constants
   static const Duration requestTimeout = Duration(seconds: 5);

@@ -53,7 +53,7 @@ class _GameActionButtonsState extends State<GameActionButtons>
     }
   }
 
-  bool get _anyGlowActive => widget.tryAgainMode || widget.watchAdForHintMode;
+  bool get _anyGlowActive => widget.tryAgainMode;
 
   @override
   void didUpdateWidget(GameActionButtons oldWidget) {
@@ -184,8 +184,10 @@ class _GameActionButtonsState extends State<GameActionButtons>
         onPressed: () async {
           if (widget.tryAgainMode) {
             widget.onRestartPressed();
-          } else {
+          } else if (widget.watchAdForHintMode) {
             widget.onWatchAdForHintPressed?.call();
+          } else {
+            widget.onRestartPressed();
           }
           return Future.value();
         },
