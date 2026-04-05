@@ -335,9 +335,7 @@ class _FlagRippleState extends State<_FlagRipple>
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 450),
-    )..forward().whenComplete(() {
-        if (mounted) widget.onComplete();
-      });
+    )..forward().whenComplete(widget.onComplete);
   }
 
   @override
@@ -423,9 +421,7 @@ class _PeelParticleState extends State<_PeelParticle>
     _ctrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 600),
-    )..forward().whenComplete(() {
-        if (mounted) widget.onComplete();
-      });
+    )..forward().whenComplete(widget.onComplete);
   }
 
   @override
