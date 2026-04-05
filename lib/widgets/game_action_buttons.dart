@@ -245,7 +245,7 @@ class _GameActionButtonsState extends State<GameActionButtons>
 class _BorderGlowPainter extends CustomPainter {
   final double glow;
   final double radius;
-  final Paint _paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5;
+  static final Paint _paint = Paint()..style = PaintingStyle.stroke..strokeWidth = 2.5;
 
   _BorderGlowPainter({required this.glow, required this.radius});
 

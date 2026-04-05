@@ -63,6 +63,7 @@ class _GameBoardState extends State<GameBoard> {
     // Force a fresh score fetch for this session — the static TTL cache may
     // hold a stale value from the previous board open (e.g. pre-win score).
     _serverService.invalidateScoreCache();
+    _viewingBoard = false;
     _stateManager.levels = await loadLevels();
 
     await _loadActiveGame();
@@ -530,7 +531,10 @@ class _GameBoardState extends State<GameBoard> {
 
   void _startNextLevel() {
     _stateManager.isFinishingGame = false;
-    setState(() => _stateManager.inputLocked = false);
+    setState(() {
+      _stateManager.inputLocked = false;
+      _viewingBoard = false;
+    });
 
     if (_stateManager.currentLevelIndex + 1 < _stateManager.levels.length) {
       _stateManager.currentLevelIndex++;

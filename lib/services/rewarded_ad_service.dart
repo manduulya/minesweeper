@@ -57,9 +57,7 @@ class RewardedAdService {
       },
     );
 
-    await _ad!.show(
-      onUserEarnedReward: (_, __) => onRewarded(),
-    );
+    await _ad!.show(onUserEarnedReward: (_, __) => onRewarded());
   }
 
   void dispose() {

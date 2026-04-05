@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -228,10 +229,12 @@ class GameServerService {
       final localScore = hive['score'] as int? ?? 0;
       final hasPending = OfflineSyncService.pendingCount > 0;
 
-      // Always trust server level. For score, keep local if pending results
-      // haven't synced yet and local is higher (offline-earned points).
+      // If pending offline results exist and local is ahead, keep local values.
+      // Otherwise trust the server — it's the authoritative source.
+      final localLevel = hive['level'] as int? ?? 0;
       final resolvedScore = (hasPending && localScore > serverScore) ? localScore : serverScore;
-      final resolved = {'score': resolvedScore, 'level': serverLevel};
+      final resolvedLevel = (hasPending && localLevel > serverLevel) ? localLevel : max(serverLevel, localLevel);
+      final resolved = {'score': resolvedScore, 'level': resolvedLevel};
       OfflineSyncService.cacheScore(resolved);
       return resolved;
     } catch (_) {
