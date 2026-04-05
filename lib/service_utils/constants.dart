@@ -12,7 +12,7 @@ class ApiConstants {
 
   // Current environment - change this based on your setup
   static const String baseUrl =
-      localPhysicalDevice; // use machine IP for physical Android device
+      localiOSSimulator; // use machine IP for physical Android device
 
   // Other constants
   static const Duration requestTimeout = Duration(seconds: 5);

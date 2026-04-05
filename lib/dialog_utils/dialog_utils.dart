@@ -232,6 +232,7 @@ class DialogUtils {
     required BuildContext context,
     required Game game,
     required VoidCallback onRetry,
+    VoidCallback? onViewBoard,
   }) {
     showGeneralDialog(
       context: context,
@@ -277,6 +278,45 @@ class DialogUtils {
                 ),
 
                 const SizedBox(height: 24),
+                if (onViewBoard != null) ...[
+                  ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop();
+                      onViewBoard();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      backgroundColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 36,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1B2844),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFFFFFFFF),
+                          width: 2,
+                        ),
+                      ),
+                      child: const Text(
+                        'VIEW BOARD',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontFamily: 'Acsioma',
+                          fontSize: 18,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 ElevatedButton(
                   onPressed: () async {
                     Navigator.of(context).pop();

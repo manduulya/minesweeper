@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
 import 'click_button_widget.dart';
 
-class GameActionButtons extends StatelessWidget {
+class GameActionButtons extends StatefulWidget {
   final bool isHintMode;
   final bool canUseHint;
   final VoidCallback onHintPressed;
   final VoidCallback onRestartPressed;
   final Offset hintOffset;
   final Offset restartOffset;
-
-  /// ✅ NEW: when true (e.g. screenWidth < 400), buttons get smaller + fit better
   final bool compact;
-
-  /// Extra bottom padding to clear the banner ad
   final double bottomPadding;
+  final bool tryAgainMode;
+  final bool watchAdForHintMode;
+  final VoidCallback? onWatchAdForHintPressed;
 
   const GameActionButtons({
     super.key,
@@ -25,14 +24,61 @@ class GameActionButtons extends StatelessWidget {
     required this.restartOffset,
     this.compact = false,
     this.bottomPadding = 0,
+    this.tryAgainMode = false,
+    this.watchAdForHintMode = false,
+    this.onWatchAdForHintPressed,
   });
 
   @override
+  State<GameActionButtons> createState() => _GameActionButtonsState();
+}
+
+class _GameActionButtonsState extends State<GameActionButtons>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _glowController;
+  late final Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _glowController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _glowAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _glowController, curve: Curves.easeInOut),
+    );
+    if (widget.tryAgainMode || widget.watchAdForHintMode) {
+      _glowController.repeat(reverse: true);
+    }
+  }
+
+  bool get _anyGlowActive => widget.tryAgainMode || widget.watchAdForHintMode;
+
+  @override
+  void didUpdateWidget(GameActionButtons oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final wasActive = oldWidget.tryAgainMode || oldWidget.watchAdForHintMode;
+    if (_anyGlowActive && !wasActive) {
+      _glowController.repeat(reverse: true);
+    } else if (!_anyGlowActive && wasActive) {
+      _glowController.stop();
+      _glowController.reset();
+    }
+  }
+
+  @override
+  void dispose() {
+    _glowController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final gap = compact ? 10.0 : 14.0;
+    final gap = widget.compact ? 10.0 : 14.0;
 
     return Padding(
-      padding: EdgeInsets.only(top: 12.0, bottom: 12.0 + bottomPadding),
+      padding: EdgeInsets.only(top: 12.0, bottom: 12.0 + widget.bottomPadding),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -45,14 +91,14 @@ class GameActionButtons extends StatelessWidget {
   }
 
   Widget _buildHintButton() {
-    final width = compact ? 132.0 : 150.0;
-    final iconSize = compact ? 26.0 : 32.0;
-    final fontSize = compact ? 13.0 : 14.0;
-    final vPad = compact ? 7.0 : 8.0;
-    final hPad = compact ? 12.0 : 16.0;
+    final width = widget.compact ? 132.0 : 150.0;
+    final iconSize = widget.compact ? 26.0 : 32.0;
+    final fontSize = widget.compact ? 13.0 : 14.0;
+    final vPad = widget.compact ? 7.0 : 8.0;
+    final hPad = widget.compact ? 12.0 : 16.0;
 
     return AnimatedSlide(
-      offset: hintOffset,
+      offset: widget.hintOffset,
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOut,
       child: ClickButton(
@@ -65,30 +111,42 @@ class GameActionButtons extends StatelessWidget {
             borderRadius: BorderRadius.circular(12),
           ),
         ),
-        onPressed: canUseHint
+        onPressed: widget.watchAdForHintMode
             ? () async {
-                onHintPressed();
+                widget.onWatchAdForHintPressed?.call();
+                return Future.value();
+              }
+            : widget.canUseHint
+            ? () async {
+                widget.onHintPressed();
                 return Future.value();
               }
             : () async => Future.value(),
-        child: Container(
-          width: width,
-          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-          decoration: BoxDecoration(
-            color: isHintMode
-                ? const Color(0xFF1B2844)
-                : canUseHint
-                ? Colors.blue.withOpacity(0.1)
-                : Colors.grey.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            // border: Border.all(
-            //   color: isHintMode
-            //       ? const Color(0xFF1B2844)
-            //       : canUseHint
-            //       ? Colors.blue
-            //       : Colors.grey,
-            // ),
-          ),
+        child: AnimatedBuilder(
+          animation: _glowAnimation,
+          builder: (context, child) {
+            final glow = widget.watchAdForHintMode ? _glowAnimation.value : 0.0;
+            return CustomPaint(
+              painter: widget.watchAdForHintMode
+                  ? _BorderGlowPainter(glow: glow, radius: 12)
+                  : null,
+              child: Container(
+                width: width,
+                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+                decoration: BoxDecoration(
+                  color: widget.isHintMode
+                      ? const Color(0xFF1B2844)
+                      : widget.watchAdForHintMode
+                      ? Colors.blue.withValues(alpha: 0.15)
+                      : widget.canUseHint
+                      ? Colors.blue.withValues(alpha:0.1)
+                      : Colors.grey.withValues(alpha:0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: child,
+              ),
+            );
+          },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
@@ -98,17 +156,23 @@ class GameActionButtons extends StatelessWidget {
                 width: iconSize,
                 height: iconSize,
               ),
-              SizedBox(width: compact ? 6 : 8),
+              SizedBox(width: widget.compact ? 6 : 8),
               Flexible(
                 child: Text(
-                  isHintMode ? 'Hint Mode' : 'Use Hint',
+                  widget.watchAdForHintMode
+                      ? 'Watch Ad'
+                      : widget.isHintMode
+                      ? 'Hint Mode'
+                      : 'Use Hint',
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: fontSize,
                     fontWeight: FontWeight.bold,
-                    color: isHintMode
+                    color: widget.watchAdForHintMode
+                        ? Colors.blue
+                        : widget.isHintMode
                         ? Colors.white
-                        : canUseHint
+                        : widget.canUseHint
                         ? Colors.blue
                         : Colors.grey,
                   ),
@@ -122,14 +186,14 @@ class GameActionButtons extends StatelessWidget {
   }
 
   Widget _buildRestartButton() {
-    final width = compact ? 132.0 : 150.0;
-    final iconSize = compact ? 26.0 : 32.0;
-    final fontSize = compact ? 13.0 : 14.0;
-    final vPad = compact ? 7.0 : 8.0;
-    final hPad = compact ? 12.0 : 16.0;
+    final width = widget.compact ? 132.0 : 150.0;
+    final iconSize = widget.compact ? 26.0 : 32.0;
+    final fontSize = widget.compact ? 13.0 : 14.0;
+    final vPad = widget.compact ? 7.0 : 8.0;
+    final hPad = widget.compact ? 12.0 : 16.0;
 
     return AnimatedSlide(
-      offset: restartOffset,
+      offset: widget.restartOffset,
       duration: const Duration(milliseconds: 500),
       curve: Curves.easeOut,
       child: ClickButton(
@@ -143,29 +207,50 @@ class GameActionButtons extends StatelessWidget {
           ),
         ),
         onPressed: () async {
-          onRestartPressed();
+          if (widget.tryAgainMode) {
+            widget.onRestartPressed();
+          } else {
+            widget.onWatchAdForHintPressed?.call();
+          }
           return Future.value();
         },
-        child: Container(
-          width: width,
-          padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
-          decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            // border: Border.all(color: Colors.orange),
-          ),
+        child: AnimatedBuilder(
+          animation: _glowAnimation,
+          builder: (context, child) {
+            final glow = widget.tryAgainMode ? _glowAnimation.value : 0.0;
+            return CustomPaint(
+              painter: widget.tryAgainMode
+                  ? _BorderGlowPainter(glow: glow, radius: 12)
+                  : null,
+              child: Container(
+                width: width,
+                padding: EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: child,
+              ),
+            );
+          },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              Image.asset(
-                'assets/restartButton.webp',
-                width: iconSize,
-                height: iconSize,
-              ),
-              SizedBox(width: compact ? 6 : 8),
+              widget.tryAgainMode
+                  ? Image.asset(
+                      'assets/restartButton.webp',
+                      width: iconSize,
+                      height: iconSize,
+                    )
+                  : Icon(
+                      Icons.play_circle_outline,
+                      size: iconSize,
+                      color: Colors.white,
+                    ),
+              SizedBox(width: widget.compact ? 6 : 8),
               Text(
-                'Restart',
+                widget.tryAgainMode ? 'Try Again' : 'Free Hint',
                 style: TextStyle(
                   fontSize: fontSize,
                   fontWeight: FontWeight.bold,
@@ -178,4 +263,31 @@ class GameActionButtons extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BorderGlowPainter extends CustomPainter {
+  final double glow;
+  final double radius;
+
+  _BorderGlowPainter({required this.glow, required this.radius});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Radius.circular(radius),
+    );
+
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = Colors.orange.withValues(alpha: 0.6 + 0.4 * glow)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, 2 + 6 * glow),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_BorderGlowPainter old) => old.glow != glow;
 }
