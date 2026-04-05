@@ -13,83 +13,28 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          fetch-depth: 0
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install anthropic==0.40.0
 
       - name: Get PR diff
-        id: diff
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr diff ${{ github.event.pull_request.number }} > diff.txt
-          echo "lines=$(wc -l < diff.txt)" >> $GITHUB_OUTPUT
+        run: gh pr diff ${{ github.event.pull_request.number }} > diff.txt
 
       - name: Run Claude review
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           PR_TITLE: ${{ github.event.pull_request.title }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          pip install anthropic --quiet
-
-          python3 << 'EOF'
-          import anthropic
-          import os
-
-          with open("diff.txt", "r") as f:
-              diff = f.read()
-
-          # Truncate very large diffs to avoid token limits
-          if len(diff) > 30000:
-              diff = diff[:30000] + "\n\n[diff truncated — showing first 30 000 chars]"
-
-          client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-
-          message = client.messages.create(
-              model="claude-opus-4-6",
-              max_tokens=2048,
-              messages=[
-                  {
-                      "role": "user",
-                      "content": f"""You are reviewing a Flutter/Dart pull request for **Mine Master**, a minesweeper puzzle game.
-
-PR title: {os.environ['PR_TITLE']}
-
-Review the following git diff and provide concise, actionable feedback. Focus on:
-- Correctness and logic bugs
-- Flutter/Dart best practices (widget lifecycle, state management, dispose)
-- Performance concerns (unnecessary rebuilds, animation controllers not disposed)
-- Security issues
-- Missing edge cases
-
-Do NOT flag style nitpicks or suggest refactors beyond the scope of the PR.
-Format your response in markdown with a brief summary at the top, then specific comments grouped by file.
-If the changes look good, say so clearly.
-
-```diff
-{diff}
-```""",
-                  }
-              ],
-          )
-
-          review = message.content[0].text
-
-          with open("review.md", "w") as f:
-              f.write(review)
-
-          print("Review generated successfully.")
-          EOF
+        run: python3 .github/scripts/claude_review.py
 
       - name: Post review comment
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          BODY=$(cat review.md)
-          gh pr comment ${{ github.event.pull_request.number }} \
-            --body "## Claude Code Review 🤖
-
-${BODY}
-
----
-*Reviewed by [Claude](https://claude.ai) via GitHub Actions*"
+        run: gh pr comment ${{ github.event.pull_request.number }} --body-file review.md
