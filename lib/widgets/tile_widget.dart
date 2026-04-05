@@ -114,7 +114,7 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
       entry = OverlayEntry(
         builder: (ctx) => _FlagRipple(
           center: center,
-          onComplete: () => entry?.remove(),
+          onComplete: () { try { entry?.remove(); } catch (_) {} },
         ),
       );
       Overlay.of(context).insert(entry);
@@ -139,7 +139,7 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
         builder: (ctx) => _PeelParticle(
           startOffset: globalOffset,
           tileSize: size,
-          onComplete: () => entry?.remove(),
+          onComplete: () { try { entry?.remove(); } catch (_) {} },
         ),
       );
       Overlay.of(context).insert(entry);
