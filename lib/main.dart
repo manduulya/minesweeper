@@ -8,11 +8,13 @@ import 'screens/landing_page.dart';
 import 'screens/home.dart';
 import 'services/settings_service.dart';
 import 'hive/hive_service.dart';
+import 'services/notification_service.dart';
 import 'widgets/banner_ad_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await HiveService.init();
+  await NotificationService.init();
   if (!kIsWeb) {
     await MobileAds.instance.initialize();
   }
@@ -132,7 +134,8 @@ class _SplashToAuthWrapperState extends State<SplashToAuthWrapper> {
 
       await authService.initializeAuth(); // syncs pending results internally
       await settingsService.initializeSettings();
-
+      await NotificationService.requestPermission();
+      await NotificationService.scheduleDailyChallenge(hour: 9, minute: 0);
     });
   }
 

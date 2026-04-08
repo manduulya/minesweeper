@@ -15,6 +15,8 @@ import '../services/auth_service.dart';
 import '../service_utils/error_handler.dart';
 import '../hive/offline_sync_service.dart';
 import 'tutorial_screen.dart';
+import 'daily_challenge_screen.dart';
+import '../services/daily_challenge_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -471,6 +473,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 12),
+
+                              // Daily Challenge button
+                              _buildDailyButton(),
+
                               const SizedBox(height: 16),
 
                               // Secondary buttons
@@ -544,6 +551,71 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildDailyButton() {
+    final todayResult = DailyChallengeService.loadTodayResult();
+    final alreadyWon = todayResult?.won == true;
+    final challengeNum = DailyChallengeService.getChallengeNumber();
+
+    return GestureDetector(
+      onTap: _isLoading
+          ? null
+          : () async {
+              await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const DailyChallengeScreen(),
+                ),
+              );
+              if (mounted) setState(() {});
+            },
+      child: Container(
+        width: 280,
+        height: 56,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: alreadyWon
+                ? Colors.greenAccent.withValues(alpha: 0.6)
+                : const Color(0xFFFFDD00).withValues(alpha: 0.6),
+            width: 1.5,
+          ),
+          color: Colors.white.withValues(alpha: 0.08),
+          boxShadow: [
+            BoxShadow(
+              color: (alreadyWon ? Colors.greenAccent : const Color(0xFFFFDD00))
+                  .withValues(alpha: 0.18),
+              blurRadius: 10,
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              alreadyWon ? Icons.check_circle : Icons.calendar_today,
+              color: alreadyWon ? Colors.greenAccent : const Color(0xFFFFDD00),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              alreadyWon
+                  ? 'Daily #$challengeNum — Done!'
+                  : 'Daily Challenge #$challengeNum',
+              style: TextStyle(
+                color: alreadyWon ? Colors.greenAccent : const Color(0xFFFFDD00),
+                fontFamily: 'Acsioma',
+                fontSize: 16,
+                fontWeight: FontWeight.normal,
+                shadows: const [
+                  Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 1)),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

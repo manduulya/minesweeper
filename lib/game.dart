@@ -61,9 +61,10 @@ class Game {
     this.winningStreak = 0,
     this.hintCount = 3,
     this.shape,
+    int? seed,
   }) {
     _initBoard();
-    _placeBombs();
+    _placeBombs(seed: seed);
     calculateAdjacency();
   }
 
@@ -79,8 +80,8 @@ class Game {
     );
   }
 
-  void _placeBombs() {
-    final rand = Random();
+  void _placeBombs({int? seed}) {
+    final rand = seed != null ? Random(seed) : Random();
     int placed = 0;
     while (placed < bombCount) {
       final r = rand.nextInt(rows);
@@ -233,7 +234,7 @@ class Game {
       SoundManager.vibrateWin();
       int base = 100;
       winningStreak += 1;
-      hintCount += 1;
+      hintCount = (hintCount + 1).clamp(0, 10);
       bonus = (winningStreak >= 2) ? (base * (winningStreak * 0.1)).round() : 0;
       score += base + bonus;
       finalScore = score;

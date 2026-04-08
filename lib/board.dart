@@ -570,7 +570,7 @@ class _GameBoardState extends State<GameBoard> {
     await _rewardedAdService.showAd(
       onRewarded: () {
         if (!mounted || _stateManager.game == null) return;
-        setState(() => _stateManager.game!.hintCount++);
+        setState(() => _stateManager.game!.hintCount = (_stateManager.game!.hintCount + 1).clamp(0, 10));
         _updateServerGame();
       },
     );
@@ -746,7 +746,7 @@ class _GameBoardState extends State<GameBoard> {
                             },
                             onRestartPressed: _closeViewBoard,
                             tryAgainMode: _viewingBoard,
-                            watchAdForHintMode: !_viewingBoard,
+                            watchAdForHintMode: !_viewingBoard && _stateManager.game!.hintCount < 10,
                             onWatchAdForHintPressed: _onWatchAdForHint,
                             hintOffset: _animationManager.hintOffset,
                             restartOffset: _animationManager.restartOffset,
