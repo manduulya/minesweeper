@@ -231,7 +231,14 @@ class _TutorialScreenState extends State<TutorialScreen>
               onPressed: () async {
                 Navigator.of(ctx).pop();
                 if (dontShowAgain) await TutorialScreen.markComplete();
-                if (mounted) Navigator.of(context).pop();
+                if (!mounted) return;
+                if (widget.launchGameOnComplete) {
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(builder: (_) => const GameBoard()),
+                  );
+                } else {
+                  Navigator.of(context).pop();
+                }
               },
               child: const Text(
                 'Skip',

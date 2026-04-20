@@ -1,3 +1,5 @@
 #include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
 #include "Generated.xcconfig"
 #include "Secrets.xcconfig"
+// Production App ID — used only for App Store releases.
+ADMOB_APP_ID = ca-app-pub-7775348743322565~6752183205

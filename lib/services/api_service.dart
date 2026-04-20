@@ -392,6 +392,61 @@ class ApiService {
     }
   }
 
+  // ─── World Map Progress ────────────────────────────────────────────────────
+
+  /// Saves the full set of revealed country ISO codes to the server.
+  /// The server stores the union, so this is safe to call after every reveal.
+  Future<void> saveWorldMapProgress(List<String> isos) async {
+    final response = await _makeRequest(
+      () async => http.post(
+        Uri.parse('${ApiConstants.baseUrl}/world-map/progress'),
+        headers: await _getHeaders(),
+        body: jsonEncode({'revealed_countries': isos}),
+      ),
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception(
+        'Failed to save world map progress: ${response.statusCode}',
+      );
+    }
+  }
+
+  /// Fetches the world map leaderboard ranked by countries revealed.
+  Future<List<Map<String, dynamic>>> getWorldMapLeaderboard({int limit = 50}) async {
+    final response = await _makeRequest(
+      () async => http.get(
+        Uri.parse('${ApiConstants.baseUrl}/world-map/leaderboard?limit=$limit'),
+        headers: await _getHeaders(),
+      ),
+    );
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+    }
+    throw Exception(
+      'World map leaderboard failed: ${response.statusCode} ${response.body}',
+    );
+  }
+
+  /// Fetches the user's revealed country ISO codes from the server.
+  /// Returns null if the request fails so callers can fall back to local cache.
+  Future<List<String>?> getWorldMapProgress() async {
+    try {
+      final response = await _makeRequest(
+        () async => http.get(
+          Uri.parse('${ApiConstants.baseUrl}/world-map/progress'),
+          headers: await _getHeaders(),
+        ),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return List<String>.from(data['revealed_countries'] as List);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>> loginWithFacebook({
     required String facebookId,
     required String name,

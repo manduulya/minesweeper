@@ -6,9 +6,10 @@ Starting from a classic 10-mine grid and scaling all the way up to brutal 60-min
 
 FEATURES
 • 200 handcrafted levels — from beginner to expert
+• Reveal the World mode — conquer countries on a 3D globe by solving their minesweeper boards
 • Global leaderboard — compete with players worldwide
 • Winning streaks — chain victories to climb the ranks
-• Hint system — stuck? use a hint to reveal a safe tile
+• Hint system — stuck? use a hint, or watch an ad to earn one
 • Works offline — play anywhere, no connection needed
 • Progress syncs across sessions — never lose your place
 
@@ -22,12 +23,14 @@ Can you reach Level 200?
 ## Features
 
 - Classic Minesweeper gameplay with safe tile clearing and mines
+- **Reveal the World** — a second mode where players unlock countries on a rotatable 3D globe by solving country-shaped minesweeper boards; each win reveals the country with its flag colour and shows a fun fact
 - Increasing difficulty: more mines added at each level
 - Scoring based on number of cleared mines and completion time
 - Winning streak bonus multiplier (10% per consecutive win up to 100%)
 - Pop-up notifications displaying earned bonus points
+- Hint system — reveals a safe tile; watch a rewarded ad to earn extra hints
 - Clean, responsive UI using Flutter widgets
-- Cross-platform support: runs on iOS, Android, and desktop
+- Cross-platform support: runs on iOS and Android
 
 ## Keywords 
 minesweeper,logic,puzzle,brain,mines,strategy,sweep,bomb,grid,classic,challenge,leaderboard
@@ -60,7 +63,13 @@ flutter pub get
 
 3. Run the app on your connected device or emulator:
 ```bash
-    flutter run
+flutter run
+```
+
+4. Build a debug APK for device testing (uses test AdMob IDs):
+```bash
+flutter build apk --debug
+flutter install
 ```
 
 ### How to Play

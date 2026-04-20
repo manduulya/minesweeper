@@ -24,7 +24,7 @@
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-7775348743322565~4877263677"/>
+            android:value="${admobAppId}"/>
 
         <meta-data
             android:name="com.facebook.sdk.ApplicationId"
