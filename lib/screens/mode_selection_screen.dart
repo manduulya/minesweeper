@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../board.dart';
+import '../sound_manager.dart';
 import 'tutorial_screen.dart';
 import 'world_map_screen.dart';
 
@@ -24,7 +25,10 @@ class ModeSelectionScreen extends StatelessWidget {
                   alignment: Alignment.topLeft,
                   child: IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed: () {
+                      SoundManager.playClick();
+                      Navigator.of(context).pop();
+                    },
                   ),
                 ),
 
@@ -55,11 +59,14 @@ class ModeSelectionScreen extends StatelessWidget {
                   title: 'REVEAL THE WORLD',
                   subtitle: 'Uncover countries on a world map',
                   icon: Icons.public,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const WorldMapScreen(),
-                    ),
-                  ),
+                  onTap: () {
+                    SoundManager.playClick();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const WorldMapScreen(),
+                      ),
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -70,6 +77,7 @@ class ModeSelectionScreen extends StatelessWidget {
                   subtitle: '200 handcrafted levels',
                   icon: Icons.military_tech,
                   onTap: () async {
+                    SoundManager.playClick();
                     final showTutorial = await TutorialScreen.shouldShow();
                     if (!context.mounted) return;
                     Navigator.of(context).pushReplacement(
