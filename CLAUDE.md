@@ -116,12 +116,16 @@ All ad IDs switch automatically between **test** (debug/profile builds) and **pr
 
 ### Ad Unit IDs
 
-| Service | Platform | Debug | Release |
-|---|---|---|---|
-| Interstitial | Android | `ca-app-pub-3940256099942544/1033173712` | `ca-app-pub-7775348743322565/9700217077` |
-| Interstitial | iOS | `ca-app-pub-3940256099942544/4411468910` | `ca-app-pub-7775348743322565/8718307892` |
-| Rewarded | Android | `ca-app-pub-3940256099942544/5224354917` | `ca-app-pub-7775348743322565/5646307441` |
-| Rewarded | iOS | `ca-app-pub-3940256099942544/1712485313` | `ca-app-pub-7775348743322565/3638044050` |
+Test IDs (Google's public test publisher `ca-app-pub-3940256099942544`):
+
+| Service | Platform | Debug ID |
+|---|---|---|
+| Interstitial | Android | `ca-app-pub-3940256099942544/1033173712` |
+| Interstitial | iOS | `ca-app-pub-3940256099942544/4411468910` |
+| Rewarded | Android | `ca-app-pub-3940256099942544/5224354917` |
+| Rewarded | iOS | `ca-app-pub-3940256099942544/1712485313` |
+
+Production IDs are not stored in this file — find them in `lib/services/interstitial_ad_service.dart` and `lib/services/rewarded_ad_service.dart`.
 
 ### Native App ID configuration
 - **Android**: `manifestPlaceholders["admobAppId"]` set per build type in `android/app/build.gradle.kts`; referenced as `${admobAppId}` in `AndroidManifest.xml`
