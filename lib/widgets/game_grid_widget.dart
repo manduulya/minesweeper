@@ -82,14 +82,16 @@ class GameGridWidget extends StatelessWidget {
                       top: (r - minRow) * (tileSize + gap),
                       width: tileSize,
                       height: tileSize,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(tileRadius),
-                        child: TileWidget(
-                          tile: game.board[r][c],
-                          onTap: () => onTileTap(r, c),
-                          onLongPress: () => onTileLongPress(r, c),
-                          gridRow: r - minRow,
-                          gridCol: c - minCol,
+                      child: RepaintBoundary(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(tileRadius),
+                          child: TileWidget(
+                            tile: game.board[r][c],
+                            onTap: () => onTileTap(r, c),
+                            onLongPress: () => onTileLongPress(r, c),
+                            gridRow: r - minRow,
+                            gridCol: c - minCol,
+                          ),
                         ),
                       ),
                     ),

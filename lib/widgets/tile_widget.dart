@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import '../tile.dart';
+import 'peel_particle_system.dart';
 
 class TileWidget extends StatefulWidget {
   final Tile tile;
@@ -38,14 +38,11 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
   bool _wasAnimating = false;
   bool _wasFlagged = false;
 
-  // Overlay entries and the peel delay timer are tracked so they can be
-  // cleaned up in dispose() if the widget leaves the tree mid-animation.
+  // Flag-ripple overlay entries — cleaned up in dispose() if the widget
+  // leaves the tree while a ripple is still in flight.
   final List<OverlayEntry> _activeOverlays = [];
+  // Stagger timer for the peel animation.
   Timer? _peelTimer;
-
-  // Global cap: never run more than 24 peel particles at once across all tiles.
-  static int _activePeelCount = 0;
-  static const int _maxPeelParticles = 24;
 
   @override
   void initState() {
@@ -84,31 +81,44 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
   void didUpdateWidget(TileWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
+    final prevFlagged = _wasFlagged;
+    final prevRevealed = _wasRevealed;
+    final prevAnimating = _wasAnimating;
+
+    _wasRevealed = widget.tile.isRevealed;
+    _wasAnimating = widget.tile.shouldAnimate;
+    _wasFlagged = widget.tile.isFlagged;
+
     // Start animations when bomb is revealed with shouldAnimate
-    if (widget.tile.shouldAnimate && !_wasAnimating) {
+    if (widget.tile.shouldAnimate && !prevAnimating) {
       _scaleController.forward();
       _pulseController.repeat(reverse: true);
     }
 
     // Stop animation when shouldAnimate becomes false
-    if (!widget.tile.shouldAnimate && _wasAnimating) {
+    if (!widget.tile.shouldAnimate && prevAnimating) {
       _pulseController.stop();
       _scaleController.reset();
     }
 
     // Peel animation when any non-bomb tile is revealed
-    if (widget.tile.isRevealed && !_wasRevealed && !widget.tile.isBomb) {
+    if (widget.tile.isRevealed && !prevRevealed && !widget.tile.isBomb) {
       _triggerPeelAnimation();
     }
 
     // Ripple when tile is freshly flagged
-    if (widget.tile.isFlagged && !_wasFlagged) {
+    if (widget.tile.isFlagged && !prevFlagged) {
       _triggerFlagRipple();
     }
 
-    _wasRevealed = widget.tile.isRevealed;
-    _wasAnimating = widget.tile.shouldAnimate;
-    _wasFlagged = widget.tile.isFlagged;
+    // Force a rebuild when the tile's visual state changes. TileWidgets are
+    // built inside LayoutBuilder's layout-phase callback, which can suppress
+    // the normal post-didUpdateWidget rebuild in some Flutter versions.
+    if (widget.tile.isFlagged != prevFlagged ||
+        widget.tile.isRevealed != prevRevealed ||
+        widget.tile.shouldAnimate != prevAnimating) {
+      setState(() {});
+    }
   }
 
   void _triggerFlagRipple() {
@@ -136,9 +146,6 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
   }
 
   void _triggerPeelAnimation() {
-    // Respect the global cap to avoid spawning hundreds of particles at once.
-    if (_activePeelCount >= _maxPeelParticles) return;
-
     // Stagger by grid position: each row is 30 ms later, each col adds 8 ms.
     // This creates a top-to-bottom waterfall when many tiles reveal at once.
     final delayMs = widget.gridRow * 30 + widget.gridCol * 8;
@@ -148,24 +155,11 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
       final renderBox = context.findRenderObject() as RenderBox?;
       if (renderBox == null) return;
 
-      final globalOffset = renderBox.localToGlobal(Offset.zero);
-      final size = renderBox.size;
-
-      _activePeelCount++;
-      late OverlayEntry entry;
-      entry = OverlayEntry(
-        builder: (ctx) => _PeelParticle(
-          startOffset: globalOffset,
-          tileSize: size,
-          onComplete: () {
-            _activePeelCount--;
-            _activeOverlays.remove(entry);
-            try { entry.remove(); } catch (_) {}
-          },
-        ),
+      PeelParticleSystem.instance.addParticle(
+        renderBox.localToGlobal(Offset.zero),
+        renderBox.size,
+        context,
       );
-      _activeOverlays.add(entry);
-      Overlay.of(context).insert(entry);
     });
   }
 
@@ -182,6 +176,9 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
   }
 
   Color _getTileColor() {
+    // Flagged tiles always look unrevealed — isFlagged takes priority.
+    if (widget.tile.isFlagged) return const Color(0xFF1B2844);
+
     if (widget.tile.shouldAnimate &&
         widget.tile.isBomb &&
         widget.tile.isRevealed) {
@@ -201,110 +198,148 @@ class _TileWidgetState extends State<TileWidget> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onLongPress: widget.onLongPress,
-      child: AnimatedBuilder(
-        animation: Listenable.merge([_pulseAnimation, _scaleAnimation]),
-        builder: (context, child) {
-          if (widget.tile.isHintAnimating && widget.tile.hintFrame != null) {
-            IconData iconData;
-            Color glowColor;
+    // Hint animation — uses AnimatedBuilder because it pulses via _pulseController.
+    if (widget.tile.isHintAnimating && widget.tile.hintFrame != null) {
+      IconData iconData;
+      Color glowColor;
 
-            switch (widget.tile.hintFrame) {
-              case "flag":
-                iconData = Icons.flag;
-                glowColor = const Color.fromARGB(255, 78, 18, 14);
-                break;
-              case "question":
-                iconData = Icons.help_outline;
-                glowColor = const Color.fromARGB(255, 12, 19, 80);
-                break;
-              case "exclamation":
-                iconData = Icons.priority_high;
-                glowColor = Colors.red;
-                break;
-              case "safe":
-                return const SizedBox();
-              default:
-                return const SizedBox();
-            }
+      switch (widget.tile.hintFrame) {
+        case "flag":
+          iconData = Icons.flag; // fallback only — replaced below
+          glowColor = const Color.fromARGB(255, 78, 18, 14);
+          break;
+        case "question":
+          iconData = Icons.help_outline;
+          glowColor = const Color.fromARGB(255, 12, 19, 80);
+          break;
+        case "exclamation":
+          iconData = Icons.priority_high;
+          glowColor = Colors.red;
+          break;
+        default:
+          return GestureDetector(
+            onTap: widget.onTap,
+            onLongPress: widget.onLongPress,
+            child: const SizedBox.expand(),
+          );
+      }
 
-            return AnimatedBuilder(
-              animation: _pulseController,
-              builder: (context, child) {
-                double glowOpacity = 0.2 + 0.3 * _pulseController.value;
-                return Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Glow behind the icon
-                    if (widget.tile.hintFrame != "safe")
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: glowColor.withValues(alpha: glowOpacity),
-                              blurRadius: 8,
-                              spreadRadius: 2,
-                            ),
-                          ],
-                        ),
+      return GestureDetector(
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        child: AnimatedBuilder(
+          animation: _pulseController,
+          builder: (context, _) {
+            final glowOpacity = 0.2 + 0.3 * _pulseController.value;
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: glowColor.withValues(alpha: glowOpacity),
+                        blurRadius: 8,
+                        spreadRadius: 2,
                       ),
-                    Icon(iconData, color: glowColor, size: 20),
-                  ],
-                );
-              },
+                    ],
+                  ),
+                ),
+                widget.tile.hintFrame == "flag"
+                    ? Image.asset('assets/flag.webp', width: 20, height: 20)
+                    : Icon(iconData, color: glowColor, size: 20),
+              ],
             );
-          }
+          },
+        ),
+      );
+    }
 
-          return Container(
+    // Bomb explosion animation — uses AnimatedBuilder for per-frame color/scale.
+    if (widget.tile.shouldAnimate && widget.tile.isBomb) {
+      return GestureDetector(
+        onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
+        child: AnimatedBuilder(
+          animation: Listenable.merge([_pulseAnimation, _scaleAnimation]),
+          builder: (context, _) => Container(
             decoration: BoxDecoration(
               color: _getTileColor(),
               border: Border.all(color: Colors.black),
-              boxShadow: widget.tile.shouldAnimate && widget.tile.isBomb
-                  ? [
-                      BoxShadow(
-                        color:
-                            _colorAnimation.value?.withValues(alpha: 0.6) ??
-                            Colors.transparent,
-                        blurRadius: 8.0 * _pulseAnimation.value,
-                        spreadRadius: 2.0 * _pulseAnimation.value,
-                      ),
-                    ]
-                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: _colorAnimation.value?.withValues(alpha: 0.6) ??
+                      Colors.transparent,
+                  blurRadius: 8.0 * _pulseAnimation.value,
+                  spreadRadius: 2.0 * _pulseAnimation.value,
+                ),
+              ],
             ),
             alignment: Alignment.center,
-            child: widget.tile.isRevealed
-                ? widget.tile.isBomb
-                      ? Transform.scale(
-                          scale: widget.tile.shouldAnimate
-                              ? _scaleAnimation.value
-                              : 1.0,
-                          child: Image.asset(
-                            'assets/bombRevealed.webp',
-                            width: 30,
-                            height: 30,
-                          ),
-                        )
-                      : (widget.tile.adjacentBombs > 0
-                            ? Text(
-                                '${widget.tile.adjacentBombs}',
-                                style: Theme.of(context).textTheme.bodyLarge
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: Colors.black,
-                                    ),
-                              )
-                            : null)
-                : (widget.tile.isFlagged
-                      ? const Icon(Icons.flag, size: 20, color: Colors.red)
-                      : null),
-          );
-        },
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              child: Image.asset(
+                'assets/bombRevealed.webp',
+                width: 30,
+                height: 30,
+                errorBuilder: (_, __, ___) => const Icon(
+                  Icons.dangerous,
+                  size: 24,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Static tile — built directly so it always updates on setState, no
+    // AnimatedBuilder indirection that could suppress a rebuild.
+    final Widget? content;
+    if (widget.tile.isFlagged) {
+      content = Image.asset('assets/flag.webp', width: 20, height: 20);
+    } else if (widget.tile.isRevealed) {
+      if (widget.tile.isBomb) {
+        content = Image.asset(
+          'assets/bombRevealed.webp',
+          width: 30,
+          height: 30,
+          errorBuilder: (_, __, ___) => const Icon(
+            Icons.dangerous,
+            size: 24,
+            color: Colors.black87,
+          ),
+        );
+      } else if (widget.tile.adjacentBombs > 0) {
+        content = Text(
+          '${widget.tile.adjacentBombs}',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
+            color: Colors.black,
+          ),
+        );
+      } else {
+        content = null;
+      }
+    } else {
+      content = null;
+    }
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      onLongPress: widget.onLongPress,
+      child: Container(
+        decoration: BoxDecoration(
+          color: _getTileColor(),
+          border: Border.all(color: Colors.black),
+        ),
+        alignment: Alignment.center,
+        child: content,
       ),
     );
   }
@@ -382,135 +417,3 @@ class _FlagRippleState extends State<_FlagRipple>
   }
 }
 
-// ---------------------------------------------------------------------------
-// Peel particle — rendered in the global Overlay so it escapes the grid clip
-// ---------------------------------------------------------------------------
-
-class _PeelParticle extends StatefulWidget {
-  final Offset startOffset;
-  final Size tileSize;
-  final VoidCallback onComplete;
-
-  const _PeelParticle({
-    required this.startOffset,
-    required this.tileSize,
-    required this.onComplete,
-  });
-
-  @override
-  State<_PeelParticle> createState() => _PeelParticleState();
-}
-
-class _PeelParticleState extends State<_PeelParticle>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  final _rng = math.Random();
-  // +1 = top-right corner peels, -1 = top-left corner peels
-  late final double _tossDir;
-  // Random flight angle in radians (any direction)
-  late final double _angle;
-  // How far the tile travels after release (pixels)
-  late final double _flyDistance;
-
-  @override
-  void initState() {
-    super.initState();
-    _tossDir = _rng.nextBool() ? 1.0 : -1.0;
-    _angle = _rng.nextDouble() * 2 * math.pi;
-    _flyDistance = 480 + _rng.nextDouble() * 260; // 480–740 px
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 600),
-    )..forward().whenComplete(widget.onComplete);
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const double peelEnd = 0.30; // faster peel — off the surface sooner
-
-    return IgnorePointer(
-      child: AnimatedBuilder(
-        animation: _ctrl,
-        builder: (context, child) {
-          final t = _ctrl.value;
-
-          // ── Position: stays in place during peel, then flies in _angle direction ──
-          final flightT = t <= peelEnd
-              ? 0.0
-              : Curves.easeIn.transform((t - peelEnd) / (1.0 - peelEnd));
-          final dx = widget.startOffset.dx +
-              math.cos(_angle) * _flyDistance * flightT;
-          final dy = widget.startOffset.dy +
-              math.sin(_angle) * _flyDistance * flightT;
-
-          // ── rotateX: page turn — top edge hinge, 180° during peel then coasts ──
-          final double rotX;
-          if (t <= peelEnd) {
-            rotX = -math.pi * Curves.easeIn.transform(t / peelEnd);
-          } else {
-            rotX = -math.pi -
-                math.pi *
-                    1.0 *
-                    Curves.linear.transform((t - peelEnd) / (1.0 - peelEnd));
-          }
-
-          // ── rotateZ: corner bias so one corner peels more than the other ──
-          final rotZ = _tossDir * 0.40 * Curves.easeInOut.transform(t);
-
-          // ── Pivot: top corner → center as it leaves the surface ──
-          final pivotLerp = math.min(1.0, t / peelEnd);
-          final pivotX = _tossDir * (1.0 - pivotLerp);
-          final pivotY = -1.0 * (1.0 - pivotLerp);
-
-          // ── Scale: shrinks after release ──
-          final scale = t <= peelEnd
-              ? 1.0
-              : 1.0 - 0.55 * Curves.easeIn.transform(
-                  (t - peelEnd) / (1.0 - peelEnd));
-
-          // ── Opacity: fades in last 30% ──
-          final opacity =
-              t < 0.70 ? 1.0 : 1.0 - ((t - 0.70) / 0.30);
-
-          final matrix = Matrix4.identity()
-            ..setEntry(3, 2, 0.001)
-            ..rotateX(rotX)
-            ..rotateZ(rotZ)
-            ..scale(scale);
-
-          return Stack(
-            children: [
-              Positioned(
-                left: dx,
-                top: dy,
-                width: widget.tileSize.width,
-                height: widget.tileSize.height,
-                child: Opacity(
-                  opacity: opacity.clamp(0.0, 1.0),
-                  child: Transform(
-                    alignment: Alignment(pivotX, pivotY),
-                    transform: matrix,
-                    child: child,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF1B2844),
-            border: Border.all(color: Colors.black),
-            borderRadius: BorderRadius.circular(4.0),
-          ),
-        ),
-      ),
-    );
-  }
-}

@@ -99,7 +99,7 @@ class SoundManager {
 
   static Future<void> playFlag() async => _playFlagPooled('sounds/tile-flag.ogg');
   static Future<void> playUnflag() async => _playFlagPooled('sounds/tile-unflag.ogg');
-  static Future<void> playExplode() async => _play('sounds/explode.ogg');
+  static Future<void> playExplode() async => _play('sounds/match-lost.ogg');
   static Future<void> playLost() async => _play('sounds/match-lost.ogg');
   static Future<void> playWon() async => _play('sounds/match-won.ogg');
 }

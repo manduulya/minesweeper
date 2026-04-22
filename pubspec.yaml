@@ -46,6 +46,8 @@ dependencies:
   hive: ^2.2.3
   hive_flutter: ^1.1.0
   connectivity_plus: ^6.0.3
+  flutter_svg: ^2.0.10+1
+  path_drawing: ^1.0.1
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +88,7 @@ flutter:
     - assets/appicon.webp
     - assets/appicon.png
     - assets/bombRevealed.webp
+    - assets/flag.webp
     - assets/WelcomeTitle.webp
     - assets/playButton.webp
     - assets/restartButton.webp
@@ -94,8 +97,13 @@ flutter:
     - assets/sounds/
     - assets/levels/levels.json
     - assets/background1.webp
-  
-  fonts: 
+    - assets/world.svg
+    - assets/world_colored.svg
+
+  shaders:
+    - assets/shaders/globe.frag
+
+  fonts:
     - family: Acsioma
       fonts: 
         - asset: assets/fonts/Mogul-Acsioma.ttf

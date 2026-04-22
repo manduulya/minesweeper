@@ -38,22 +38,23 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('flag icon appears when isFlagged is true', (tester) async {
+    testWidgets('flag image appears when isFlagged is true', (tester) async {
       final tile = Tile()..isFlagged = true;
 
       await tester.pumpWidget(_buildTile(tile));
       await tester.pump();
 
-      expect(find.byIcon(Icons.flag), findsOneWidget);
+      // The flag is rendered as Image.asset('assets/flag.webp'), not an Icon.
+      expect(find.byType(Image), findsOneWidget);
     });
 
-    testWidgets('flag icon absent when isFlagged is false', (tester) async {
+    testWidgets('flag image absent when isFlagged is false', (tester) async {
       final tile = Tile();
 
       await tester.pumpWidget(_buildTile(tile));
       await tester.pump();
 
-      expect(find.byIcon(Icons.flag), findsNothing);
+      expect(find.byType(Image), findsNothing);
     });
 
     testWidgets('ripple fires on flag but not on unflag', (tester) async {

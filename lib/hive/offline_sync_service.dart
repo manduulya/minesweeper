@@ -51,6 +51,7 @@ class OfflineSyncService {
     HiveService.stats.delete('score');
     HiveService.game.delete('current');
     HiveService.pending.clear();
+    HiveService.worldMap.delete('revealed_countries');
   }
 
   // ─── Stats ─────────────────────────────────────────────────────────────────
@@ -154,6 +155,18 @@ class OfflineSyncService {
   }
 
   static void clearGameState() => HiveService.game.delete('current');
+
+  // ─── World Map Progress ────────────────────────────────────────────────────
+
+  static void saveWorldMapProgress(Set<String> isos) {
+    HiveService.worldMap.put('revealed_countries', isos.toList());
+  }
+
+  static Set<String> loadWorldMapProgress() {
+    final data = HiveService.worldMap.get('revealed_countries');
+    if (data == null) return {};
+    return Set<String>.from((data as List).map((e) => e.toString()));
+  }
 
   // ─── Pending Results (offline sync queue) ─────────────────────────────────
 

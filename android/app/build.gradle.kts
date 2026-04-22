@@ -64,7 +64,13 @@ android {
     }
 
     buildTypes {
+        getByName("debug") {
+            // Google's official test App ID — safe for development / sideloaded APKs.
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        }
         release {
+            // Production App ID — used only for Play Store releases.
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-7775348743322565~4877263677"
             signingConfig = signingConfigs.getByName("release")
         }
     }

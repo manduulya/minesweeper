@@ -6,7 +6,6 @@ import '../service_utils/constants.dart';
 import 'package:provider/provider.dart';
 import 'package:mine_master/widgets/click_button_widget.dart';
 import '../dialog_utils/displayUsername.dart';
-import '../board.dart';
 import 'leaderboard.dart';
 import 'settings.dart';
 import 'landing_page.dart';
@@ -15,6 +14,7 @@ import '../services/auth_service.dart';
 import '../service_utils/error_handler.dart';
 import '../hive/offline_sync_service.dart';
 import 'tutorial_screen.dart';
+import 'mode_selection_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -405,14 +405,10 @@ class _HomeScreenState extends State<HomeScreen> {
                                 onPressed: _isLoading
                                     ? null
                                     : () async {
-                                        final showTutorial =
-                                            await TutorialScreen.shouldShow();
-                                        if (!mounted) return;
                                         await Navigator.of(context).push(
                                           MaterialPageRoute(
-                                            builder: (_) => showTutorial
-                                                ? const TutorialScreen()
-                                                : const GameBoard(),
+                                            builder: (_) =>
+                                                const ModeSelectionScreen(),
                                           ),
                                         );
                                         await _loadUserData();
