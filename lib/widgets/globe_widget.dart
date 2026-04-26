@@ -53,10 +53,42 @@ class _GlobeWidgetState extends State<GlobeWidget>
   final InterstitialAdService _interstitialAdService = InterstitialAdService();
 
   // ── Rotation / zoom ────────────────────────────────────────────────────────
-  double _userLon  = 0.0;
-  double _userLat  = 0.1;
-  double _zoom     = 1.0;
-  double _userRoll = 0.0;
+  // Globe orientation stored as a row-major 3×3 rotation matrix.
+  // Horizontal drag post-multiplies by rotY (world Y — no gimbal lock).
+  // Vertical drag post-multiplies by rotX in camera space (no gimbal lock).
+  List<double> _rotMat = _rotX(0.1); // match original _userLat = 0.1
+  double _zoom = 1.0;
+
+  // ── Rotation matrix helpers ────────────────────────────────────────────────
+  static List<double> _rotX(double a) {
+    final c = cos(a), s = sin(a);
+    return [1,0,0, 0,c,-s, 0,s,c];
+  }
+
+  static List<double> _rotY(double a) {
+    final c = cos(a), s = sin(a);
+    return [c,0,s, 0,1,0, -s,0,c];
+  }
+
+  static List<double> _matMul3(List<double> A, List<double> B) => [
+    A[0]*B[0]+A[1]*B[3]+A[2]*B[6], A[0]*B[1]+A[1]*B[4]+A[2]*B[7], A[0]*B[2]+A[1]*B[5]+A[2]*B[8],
+    A[3]*B[0]+A[4]*B[3]+A[5]*B[6], A[3]*B[1]+A[4]*B[4]+A[5]*B[7], A[3]*B[2]+A[4]*B[5]+A[5]*B[8],
+    A[6]*B[0]+A[7]*B[3]+A[8]*B[6], A[6]*B[1]+A[7]*B[4]+A[8]*B[7], A[6]*B[2]+A[7]*B[5]+A[8]*B[8],
+  ];
+
+  // Re-orthonormalise to prevent floating-point drift accumulating over many multiplications.
+  static List<double> _ortho3(List<double> m) {
+    double x0=m[0],x1=m[1],x2=m[2];
+    double y0=m[3],y1=m[4],y2=m[5];
+    final xL = sqrt(x0*x0+x1*x1+x2*x2);
+    x0/=xL; x1/=xL; x2/=xL;
+    final d = y0*x0+y1*x1+y2*x2;
+    y0-=d*x0; y1-=d*x1; y2-=d*x2;
+    final yL = sqrt(y0*y0+y1*y1+y2*y2);
+    y0/=yL; y1/=yL; y2/=yL;
+    final z0=x1*y2-x2*y1, z1=x2*y0-x0*y2, z2=x0*y1-x1*y0;
+    return [x0,x1,x2, y0,y1,y2, z0,z1,z2];
+  }
 
   // ── Auto-rotation ──────────────────────────────────────────────────────────
   late final AnimationController _autoController;
@@ -71,7 +103,6 @@ class _GlobeWidgetState extends State<GlobeWidget>
   DateTime? _tapDownTime;
   bool      _wasDrag          = false;
   double    _previousScale    = 1.0;
-  double    _previousRotation = 0.0;
   bool      _hadMultiTouch    = false; // latched true the moment 2+ fingers are seen
   int       _activePointers   = 0;     // raw count from Listener — always ahead of recognizer
 
@@ -462,14 +493,18 @@ class _GlobeWidgetState extends State<GlobeWidget>
   // ── Gesture handlers ───────────────────────────────────────────────────────
 
   void _onScaleStart(ScaleStartDetails details) {
-    _userLon -= _autoController.value * 2 * pi;
+    // Absorb any current auto-rotation into the matrix so the globe freezes
+    // exactly where it is when the user touches.
+    final autoAngle = _autoController.value * 2 * pi;
+    if (autoAngle != 0) {
+      _rotMat = _matMul3(_rotMat, _rotY(-autoAngle));
+    }
     _autoController.stop();
     _autoController.value = 0;
 
-    _tapDownPos       = details.localFocalPoint;
-    _tapDownTime      = DateTime.now();
-    _previousScale    = 1.0;
-    _previousRotation = 0.0;
+    _tapDownPos    = details.localFocalPoint;
+    _tapDownTime   = DateTime.now();
+    _previousScale = 1.0;
 
     if (details.pointerCount > 1) _hadMultiTouch = true;
     _wasDrag = _hadMultiTouch;
@@ -486,16 +521,21 @@ class _GlobeWidgetState extends State<GlobeWidget>
     setState(() {
       if (details.pointerCount <= 1) {
         final sens = 0.005 / _zoom;
-        _userLon -= details.focalPointDelta.dx * sens;
-        _userLat -= details.focalPointDelta.dy * sens;
-        _userLat  = _userLat.clamp(-pi / 2 + 0.01, pi / 2 - 0.01);
+        final dx = details.focalPointDelta.dx;
+        final dy = details.focalPointDelta.dy;
+        // Horizontal drag: post-multiply by rotY (world Y — no gimbal lock).
+        // Vertical drag: post-multiply by rotX in camera space — this is the
+        // fix for gimbal lock. Pre-multiplying (old approach) rotated around
+        // the fixed world X-axis, which caused vertical drags to appear
+        // horizontal when the globe had been panned 90° away from the start.
+        if (dx != 0) _rotMat = _matMul3(_rotMat, _rotY(-dx * sens));
+        if (dy != 0) _rotMat = _matMul3(_rotMat, _rotX(-dy * sens));
+        _rotMat = _ortho3(_rotMat);
       }
       if (details.pointerCount > 1) {
         final scaleDelta = details.scale / _previousScale;
         _zoom = (_zoom * scaleDelta).clamp(1.0, 10.0);
         _previousScale = details.scale;
-        _userRoll += details.rotation - _previousRotation;
-        _previousRotation = details.rotation;
       }
     });
   }
@@ -686,27 +726,16 @@ class _GlobeWidgetState extends State<GlobeWidget>
     final z2   = 1.0 - uvzx * uvzx - uvzy * uvzy;
     if (z2 < 0) return null;
 
-    // rotZ(roll) — matches globe.frag column-major order
-    final cRoll = cos(_userRoll), sRoll = sin(_userRoll);
-    final px0 = uvzx, py0 = -uvzy, pz0 = sqrt(z2);
-    final px = cRoll * px0 - sRoll * py0;
-    final py = sRoll * px0 + cRoll * py0;
-    final pz = pz0;
+    // Apply the current display rotation matrix (same math as the shader).
+    final autoAngle = _autoController.value * 2 * pi;
+    final m = autoAngle != 0 ? _matMul3(_rotMat, _rotY(-autoAngle)) : _rotMat;
+    final px = uvzx, py = -uvzy, pz = sqrt(z2);
+    final rpx = m[0]*px + m[1]*py + m[2]*pz;
+    final rpy = m[3]*px + m[4]*py + m[5]*pz;
+    final rpz = m[6]*px + m[7]*py + m[8]*pz;
 
-    // rotY(lon)
-    final cLon = cos(_userLon), sLon = sin(_userLon);
-    final rx = cLon * px + sLon * pz;
-    final ry = py;
-    final rz = -sLon * px + cLon * pz;
-
-    // rotX(lat) — column-major, matches globe.frag
-    final cLat = cos(_userLat), sLat = sin(_userLat);
-    final rx2  = rx;
-    final ry2  = cLat * ry - sLat * rz;
-    final rz2  = sLat * ry + cLat * rz;
-
-    final sphereLat = asin(ry2.clamp(-1.0, 1.0));
-    final sphereLon = atan2(rx2, rz2);
+    final sphereLat = asin(rpy.clamp(-1.0, 1.0));
+    final sphereLon = atan2(rpx, rpz);
 
     final v = 0.5 - sphereLat / (2 * _latMax);
     if (v < 0.0 || v > 1.0) return null;
@@ -738,7 +767,8 @@ class _GlobeWidgetState extends State<GlobeWidget>
           });
           if (_zoom > 2.0) {
             if (_autoController.isAnimating) {
-              _userLon -= _autoController.value * 2 * pi;
+              final autoAngle = _autoController.value * 2 * pi;
+              if (autoAngle != 0) _rotMat = _matMul3(_rotMat, _rotY(-autoAngle));
               _autoController.stop();
               _autoController.value = 0;
             }
@@ -892,15 +922,16 @@ class _GlobeWidgetState extends State<GlobeWidget>
           AnimatedBuilder(
             animation: _autoController,
             builder: (_, __) {
-              final lon = _userLon - _autoController.value * 2 * pi;
+              final autoAngle = _autoController.value * 2 * pi;
+              final m = autoAngle != 0
+                  ? _matMul3(_rotMat, _rotY(-autoAngle))
+                  : _rotMat;
               return CustomPaint(
                 painter: _GlobePainter(
                   shader: _shader!,
                   texture: _mapTexture!,
-                  longitude: lon,
-                  latitude: _userLat,
+                  rotMat: m,
                   zoom: _zoom,
-                  roll: _userRoll,
                 ),
                 child: const SizedBox.expand(),
               );
@@ -1063,28 +1094,28 @@ class _ShimmerBarPainter extends CustomPainter {
 class _GlobePainter extends CustomPainter {
   final ui.FragmentShader shader;
   final ui.Image texture;
-  final double longitude;
-  final double latitude;
+  final List<double> rotMat; // row-major 3×3
   final double zoom;
-  final double roll;
 
   const _GlobePainter({
     required this.shader,
     required this.texture,
-    required this.longitude,
-    required this.latitude,
+    required this.rotMat,
     required this.zoom,
-    required this.roll,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
+    // Uniform layout (matches globe.frag declaration order):
+    //   vec2  uResolution → slots 0, 1
+    //   float uZoom       → slot  2
+    //   vec3  uRow0       → slots 3, 4, 5  (row 0 of rotation matrix)
+    //   vec3  uRow1       → slots 6, 7, 8  (row 1)
+    //   vec3  uRow2       → slots 9, 10, 11 (row 2)
     shader.setFloat(0, size.width);
     shader.setFloat(1, size.height);
-    shader.setFloat(2, longitude);
-    shader.setFloat(3, latitude);
-    shader.setFloat(4, zoom);
-    shader.setFloat(5, roll);
+    shader.setFloat(2, zoom);
+    for (int i = 0; i < 9; i++) { shader.setFloat(3 + i, rotMat[i]); }
     shader.setImageSampler(0, texture);
     canvas.drawRect(
       Rect.fromLTWH(0, 0, size.width, size.height),
@@ -1093,11 +1124,13 @@ class _GlobePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_GlobePainter old) =>
-      old.longitude != longitude ||
-      old.latitude  != latitude  ||
-      old.zoom      != zoom      ||
-      old.roll      != roll;
+  bool shouldRepaint(_GlobePainter old) {
+    if (old.zoom != zoom) return true;
+    for (int i = 0; i < 9; i++) {
+      if (old.rotMat[i] != rotMat[i]) return true;
+    }
+    return false;
+  }
 }
 
 // ── Country grid data ─────────────────────────────────────────────────────────
@@ -1328,7 +1361,7 @@ class _MockBoardDialogState extends State<_MockBoardDialog>
   }
 
   void _floodReveal(int idx) {
-    if (_cellState[idx] != 0 || _mines[idx]) return;
+    if (_cellState[idx] != 0 || _mines[idx] || _flagged[idx]) return;
     _cellState[idx] = 1;
     final (col, row) = widget.grid.cells[idx];
     _triggerPeelAnimation(col, row);
